@@ -56,6 +56,31 @@ To integrate with the treadmill, you need to connect to UART and decode data (e.
 - **Affordability**: Minimal hardware costs.
 
 ## Recommended Hardware
+
+### Display Choice
+A 4.3-inch display is the optimal size: not too small or bulky, ideal for selecting programs and monitoring data (speed, time, distance). Additional data can be shown on an external display or tablet.
+
+- **IPS LVGL Display (Guition JC4827W543, 4.3")** (~$13, excl. shipping):
+  - **Pros**: Low cost.
+  - **Cons**:
+    1. Limited 4 MB Flash memory (can be upgraded with soldering).
+    2. Noticeable image retention.
+    3. Subpar touch sensor performance.
+    4. Color mismatch requiring RGB recalibration.
+  - **Verdict**: Not chosen due to issues with image retention, unreliable touch, and color inaccuracies. More expensive versions (~$37) resolve some issues but still fall short of alternatives. If a high-quality, affordable 4.3-inch LVGL-based display is found, the firmware may be rewritten to support it.
+
+- **Nextion IPS Display (NX4827P043-011C)** (~$50):
+  - **Pros**: IPS panel (not to be confused with TN), reliable capacitive touch, dedicated processor reduces ESP32 load, easy interface customization with Nextion Editor.
+  - **Cons**: High cost.
+  - **Verdict**: Chosen for its superior display quality, reliable touch, and simplified interface design.
+
+  <details>
+  <summary><b>Nextion IPS Display NX4827P043-011C 4.3"</b> (▶️ Click for details)</summary>
+  <img src="/docs/images/nextion_display.png" alt="Display Screenshot" width="400"/>
+
+  **Description**: The Nextion NX4827P043-011C delivers vibrant, clear visuals with its IPS panel. The capacitive touch ensures reliable control, and its dedicated processor reduces the ESP32 load. Interface customization via Nextion Editor is intuitive, enabling easy creation of custom screens for data display and treadmill control.
+  </details>
+
   <details>
   <summary><b>ESP32-S3</b>: Highly recommended for performance and BLE support. (▶️ Click to detail)</summary>
   <img src="docs/images/esp32-s3.png" alt="ESP32-S Screenshot" width="400"/>
@@ -212,6 +237,8 @@ For a detailed history of changes, see [CHANGELOG.md](CHANGELOG.md).
 
 ## Authors
 Created by [@samsonovss](https://t.me/samsonovss) & xAI Assistant
+
+Join the project community on Telegram: [Treadmill Smart](https://t.me/TreadmillSmart)
 
 ## Support the Project
 Your support helps keep this project alive and growing! If you'd like to contribute, you can make a donation using one of the following methods:
