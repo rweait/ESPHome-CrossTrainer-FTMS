@@ -58,10 +58,17 @@ To integrate with the treadmill, you need to connect to UART and decode data (e.
 ## Recommended Hardware
 
 ### Display Choice
-A 4.3-inch display is the optimal size: not too small or bulky, ideal for selecting programs and monitoring data (speed, time, distance). Additional data can be shown on an external display or tablet.
+A 4.3-inch display is the optimal size: not too small or bulky, ideal for selecting programs and monitoring data (speed, time, distance). Additional data can be shown on an external display or tablet. All listed displays were tested to determine the optimal solution.
+
+- **Nextion TN Display (2.8")** (~$21):
+  - **Pros**: Compact, affordable.
+  - **Cons**:
+    1. Very limited viewing angle due to TN matrix.
+    2. Too small for comfortable interaction.
+  - **Verdict**: Not chosen due to restricted viewing angle and small size. A 3.2" TN display is also suboptimal due to similar viewing angle issues.
 
 - **IPS LVGL Display (Guition JC4827W543, 4.3")** (~$13, excl. shipping):
-  - **Pros**: Low cost.
+  - **Pros**: Low cost, IPS panel, capacitive touch.
   - **Cons**:
     1. Limited 4 MB Flash memory (can be upgraded with soldering).
     2. Noticeable image retention.
@@ -76,7 +83,7 @@ A 4.3-inch display is the optimal size: not too small or bulky, ideal for select
 
   <details>
   <summary><b>Nextion IPS Display NX4827P043-011C 4.3"</b> (▶️ Click for details)</summary>
-  <img src="/docs/images/nextion_display.png" alt="Display Screenshot" width="400"/>
+  <img src="/docs/images/nextion_display.jpg" alt="Display Screenshot" width="400"/>
 
   **Description**: The Nextion NX4827P043-011C delivers vibrant, clear visuals with its IPS panel. The capacitive touch ensures reliable control, and its dedicated processor reduces the ESP32 load. Interface customization via Nextion Editor is intuitive, enabling easy creation of custom screens for data display and treadmill control.
   </details>
