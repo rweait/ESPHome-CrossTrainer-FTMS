@@ -95,11 +95,7 @@ A 4.3-inch display is the optimal size: not too small or bulky, ideal for select
   <summary><b>2-channel level shifter</b>: To match 5V (PSA(xx)) and 3.3V (ESP32 S3). (▶️ Click to detail)</summary>
   <img src="docs/images/2-channel_level_shifter.webp" alt="LM2596S Screenshot" width="400"/>
   </details>
-    
-  <details>
-  <summary><b>Nextion display</b>: For enhanced user interface and interaction. (▶️ Click to detail)</summary>
-  <img src="docs/images/nextion_display.jpg" alt="display Screenshot" width="400"/>
-  </details>
+
   
   <details>
   <summary><b>FC33</b>: Optical speed sensor for treadmill calibration optional. (▶️ Click to detail)</summary>
