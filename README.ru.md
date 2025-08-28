@@ -75,8 +75,8 @@
   </details>
   
   <details>
-  <summary><b>2-канальный преобразователь уровня</b>: Для согласования 5В (PSA(xx)) и 3.3В (ESP32 S3). (▶️ Нажмите для деталей)</summary>
-  <img src="/docs/images/2-channel_level_shifter.webp" alt="LM2596S Скриншот" width="400"/>
+  <summary><b>2-канальный преобразователь уровня</b>: Для согласования 12В (PSA(xx)) и 3.3В (ESP32 S3). (▶️ Нажмите для деталей)</summary>
+  <img src="/docs/images/2-channel_level_shifter.png" alt="LM2596S Скриншот" width="400"/>
   </details>
   
   <details>
