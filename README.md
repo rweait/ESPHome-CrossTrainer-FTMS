@@ -58,8 +58,8 @@ To integrate with the treadmill, you need to connect to UART and decode data (e.
 ## Recommended Hardware
 
   <details>
-  <summary><b>Nextion IPS Display NX4827P043-011C 4.3"</b> (▶️ Click for details)</summary>
-  <img src="/docs/images/nextion_display.jpg" alt="Display Screenshot" width="400"/>
+  <summary><b>Nextion EDGE SERIES IPS Display NX4880E043-011C 4.3" 800x400</b> (▶️ Click for details)</summary>
+  <img src="/docs/images/nextion_display.png" alt="Display Screenshot" width="400"/>
 
   **Description**: The Nextion NX4827P043-011C delivers vibrant, clear visuals with its IPS panel. The capacitive touch ensures reliable control, and its dedicated processor reduces the ESP32 load. Interface customization via Nextion Editor is intuitive, enabling easy creation of custom screens for data display and treadmill control.
   </details>
