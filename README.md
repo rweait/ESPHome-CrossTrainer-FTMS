@@ -98,6 +98,7 @@ To integrate with the treadmill, you need to connect to UART and decode data (e.
 ## Connection
   <details>
   <summary>▶️ Click to Connection detail</summary>
+  ```yaml
     [PSA(xx) Board]
     Pin1 12V ──► LM2596S IN+ ──► 5V ──► Nextion Vcc / DS18B20 Vcc / FC33 Vcc / HV‑LS
     Pin2 NC  ──► (not used)
@@ -126,6 +127,7 @@ To integrate with the treadmill, you need to connect to UART and decode data (e.
     HV = 5V от LM2596S
     CH1: GPIO17 → PSA RX
     CH2: GPIO18 ← PSA TX
+```
   </details>
  
 ## Features
