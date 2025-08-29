@@ -70,6 +70,11 @@ To integrate with the treadmill, you need to connect to UART and decode data (e.
   </details>
   
   <details>
+  <summary><b>ToF400C (VL53L1X)</b>: Time‑of‑Flight distance sensor, up to 4 m range. (▶️ Click to detail)</summary>
+  <img src="docs/images/vl53l1x.png" alt="VL53L1X Screenshot" width="400"/>
+  </details>
+
+  <details>
   <summary><b>LM2596S</b>: Voltage converter from 12V to 5V (non-isolated). (▶️ Click to detail)</summary>
   <img src="docs/images/LM2596S.jpg" alt="LM2596S Screenshot" width="400"/>
   </details>

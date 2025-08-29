@@ -70,6 +70,11 @@
   </details>
   
   <details>
+  <summary><b>ToF400C (VL53L1X)</b>: Датчик для измерения расстояния до 4 м. (▶️ Click to detail)</summary>
+  <img src="/docs/images/vl53l1x.png" alt="VL53L1X Screenshot" width="400"/>
+  </details>
+
+  <details>
   <summary><b>LM2596S</b>: Преобразователь напряжения с 12В на 5В (неизолированный). (▶️ Нажмите для деталей)</summary>
   <img src="/docs/images/LM2596S.jpg" alt="LM2596S Скриншот" width="400"/>
   </details>
