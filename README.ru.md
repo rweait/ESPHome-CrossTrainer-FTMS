@@ -98,34 +98,36 @@
 <details>
 <summary>▶️ Нажмите для деталей подключения</summary>
 
-  [PSA(xx) Board]
-    Pin1 12V ──► LM2596S IN+ ──► 5V ──► Nextion Vcc / DS18B20 Vcc / FC33 Vcc / HV‑LS
-    Pin2 NC  ──► (не используется)
-    Pin3 GND ──┴───────────────────────────────────────────────────────────────┐
-    Pin4 TX  ──► HV2‑LS ──► GPIO18 (RX) ESP32‑S3                               │
-    Pin5 RX  ◄── HV1‑LS ◄── GPIO17 (TX) ESP32‑S3                               │
-    Pin6 SW  ──► +12V (Pin1)                                                   │
-                                                                               │
-  [ESP32‑S3] ──────────────────────────────────────────────────────────────────┘
-    GPIO1  TX ──► Nextion RX
-    GPIO2  RX ◄── Nextion TX
-    GPIO11 SDA ◄─► ToF400C SDA
-    GPIO12 SCL ──► ToF400C SCL
-    GPIO21 1‑Wire ◄─► DS18B20 (5V питание, подтяжка 4.7kΩ к 5V)
-    GPIO16 In  ◄── FC33 Signal (5V, проверить совместимость)
-    GND ─────────► общий
+```plaintext
+[PSA(xx) Board]
+  Pin1  12V ──► LM2596S IN+ ──► 5V ──► Nextion Vcc / DS18B20 Vcc / FC33 Vcc / HV‑LS
+  Pin2  NC  ──► (не используется)
+  Pin3  GND ──┴───────────────────────────────────────────────────────────────┐
+  Pin4  TX  ──► HV2‑LS ──► GPIO18 (RX) ESP32‑S3                               │
+  Pin5  RX  ◄── HV1‑LS ◄── GPIO17 (TX) ESP32‑S3                               │
+  Pin6  SW  ──► +12V (Pin1)                                                   │
+                                                                              │
+[ESP32‑S3] ───────────────────────────────────────────────────────────────────┘
+  GPIO1   TX  ──► Nextion RX
+  GPIO2   RX  ◄── Nextion TX
+  GPIO11  SDA ◄─► ToF400C SDA
+  GPIO12  SCL ──► ToF400C SCL
+  GPIO21  1‑Wire ◄─► DS18B20 (5V питание, подтяжка 4.7kΩ к 5V)
+  GPIO16  In  ◄── FC33 Signal (5V, проверить совместимость)
+  GND  ─────────► общий
 
-  [LM2596S]
-    IN+ 12V от PSA Pin1
-    IN− GND от PSA Pin3
-    OUT+ 5V → Nextion / DS18B20 / FC33 / HV‑LS
-    OUT− общий GND
+[LM2596S]
+  IN+   12V от PSA Pin1
+  IN−   GND от PSA Pin3
+  OUT+  5V → Nextion / DS18B20 / FC33 / HV‑LS
+  OUT−  общий GND
 
-  [Level Shifter 2‑кан.]
-    LV = 3.3V от ESP32
-    HV = 5V от LM2596S
-    CH1: GPIO17 → PSA RX
-    CH2: GPIO18 ← PSA TX
+[Level Shifter 2‑кан.]
+  LV = 3.3V от ESP32
+  HV = 5V от LM2596S
+  CH1: GPIO17 → PSA RX
+  CH2: GPIO18 ← PSA TX
+```
 
 </details>
 

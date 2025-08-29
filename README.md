@@ -104,10 +104,10 @@ To integrate with the treadmill, you need to connect to UART and decode data (e.
   Pin1  12V  ──► LM2596S IN+ ──► 5V ──► Nextion Vcc / DS18B20 Vcc / FC33 Vcc / HV‑LS
   Pin2  NC   ──► (not used)
   Pin3  GND  ──┴───────────────────────────────────────────────────────────────┐
-  Pin4  TX   ──► HV2‑LS ──► GPIO18 (RX) ESP32‑S3                              │
-  Pin5  RX   ◄── HV1‑LS ◄── GPIO17 (TX) ESP32‑S3                              │
-  Pin6  SW   ──► +12V (Pin1)                                                  │
-                                        │
+  Pin4  TX   ──► HV2‑LS ──► GPIO18 (RX) ESP32‑S3                               │
+  Pin5  RX   ◄── HV1‑LS ◄── GPIO17 (TX) ESP32‑S3                               │
+  Pin6  SW   ──► +12V (Pin1)                                                   │
+                                                                               │
   [ESP32‑S3] ──────────────────────────────────────────────────────────────────┘
   GPIO1   TX   ──► Nextion RX
   GPIO2   RX   ◄── Nextion TX
