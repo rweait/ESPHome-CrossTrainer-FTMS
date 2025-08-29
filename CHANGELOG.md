@@ -1,3 +1,9 @@
+- August 29, 2025:  
+  - Integrated a distance sensor (TOF400C‑VL53L1X) to expand treadmill control capabilities:  
+    - **Free Run speed control** – adjust treadmill speed dynamically using proximity detection, without pressing buttons.  
+    - **Safe zone operation** – automatically stops the treadmill if the user steps off, eliminating the need for a safety clip.  
+    - **Automatic interactive calibration** – measures treadmill belt length and defines acceleration/deceleration zones for precise speed control in distance sensor mode.  
+    - **Display power management** – automatically turns the display off after 1 minute of inactivity (no user detected on the treadmill) and powers it back on when the user returns.  
 - June 11, 2025:
   - Added swipe gestures to the Nextion display for seamless navigation between tabs and screens, enhancing user interaction and interface fluidity.
 - June 05, 2025:
