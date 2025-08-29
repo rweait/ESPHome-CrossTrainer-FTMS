@@ -99,34 +99,34 @@ To integrate with the treadmill, you need to connect to UART and decode data (e.
 <details>
 <summary>▶️ Click to Connection detail</summary>
 
-- ESP32-S3:
-  - GPIO17 (TX): Transmits data to RX (Pin 5) on PSA(xx) through a level shifter.
-  - GPIO18 (RX): Receives data from TX (Pin 4) on PSA(xx) through a level shifter.
-  - GND: Common ground with the level shifter (3.3V side).
-  - 3.3V: Power supply for the Low Voltage (LV) side of the level shifter.
-- ESP32-S3 (Power Supply Connections):
-  - LV (Low Voltage): 3.3V side connected to the ESP32.
-  - HV (High Voltage): 5V side connected to PSA(xx).
-  - GND (LV): Ground from the ESP32.
-  - Vcc (LV): 3.3V from the ESP32.
-  - GND (HV): Ground from the LM2596S.
-  - Vcc (HV): 5V from the LM2596S.
-- PSA(xx) Board (6-pin):
-  - Pin 1 (12V): Supplies power to the board, feeds the input of the LM2596S, and connects to Pin 6 (SW).
-  - Pin 2: Not connected (unused).
-  - Pin 3 (GND): Common ground with the LM2596S and the level shifter.
-  - Pin 4 (TX): Transmits data to GPIO18 (RX) on the ESP32 through the level shifter.
-  - Pin 5 (RX): Receives data from GPIO17 (TX) on the ESP32 through the level shifter.
-  - Pin 6 (SW): Connected to Pin 1 (12V) to power on the treadmill.
-- PSA(xx) Board (Additional 6-pin Section):
-  - Input 12V: Receives power from Pin 1 (12V) of PSA(xx).
-  - Output 5V: Provides power to the Vcc (HV) side of the level shifter.
-  - GND: Common ground with PSA(xx) and the level shifter.
-- Nextion Display:
-  - TX: Transmits data to RX (GPIO43) on ESP32-S3
-  - RX: Receives data from TX (GPIO44) on ESP32-S3
-  - GND: Ground from the LM2596S.
-  - Vcc: 5V from the LM2596S.
+  [PSA(xx) Board]
+    Pin1 12V ──► LM2596S IN+ ──► 5V ──► Nextion Vcc / DS18B20 Vcc / FC33 Vcc / HV‑LS
+    Pin2 NC  ──► (not used)
+    Pin3 GND ──┴───────────────────────────────────────────────────────────────┐
+    Pin4 TX  ──► HV2‑LS ──► GPIO18 (RX) ESP32‑S3                               │
+    Pin5 RX  ◄── HV1‑LS ◄── GPIO17 (TX) ESP32‑S3                               │
+    Pin6 SW  ──► +12V (Pin1)                                                   │
+                                                                               │
+  [ESP32‑S3] ──────────────────────────────────────────────────────────────────┘
+    GPIO1  TX ──► Nextion RX
+    GPIO2  RX ◄── Nextion TX
+    GPIO11 SDA ◄─► ToF400C SDA
+    GPIO12 SCL ──► ToF400C SCL
+    GPIO21 1‑Wire ◄─► DS18B20 (5V supply, 4.7 kΩ pull‑up to 5V)  
+    GPIO16 In  ◄── FC33 Signal (5V, check compatibility)  
+    GND ─────────► common ground  
+
+  [LM2596S]
+    IN+ 12V от PSA Pin1
+    IN− GND от PSA Pin3
+    OUT+ 5V → Nextion / DS18B20 / FC33 / HV‑LS
+    OUT− common GND  
+  
+   [Level Shifter 2‑channel]
+    LV = 3.3V от ESP32
+    HV = 5V от LM2596S
+    CH1: GPIO17 → PSA RX
+    CH2: GPIO18 ← PSA TX
 
 </details>
  
