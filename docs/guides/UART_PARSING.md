@@ -10,7 +10,7 @@
   - To read commands, connect specifically to the upper board!
 - **Connection**:  
   - Use an ESP32-S3 to connect to the treadmill's board.  
-  - **GPIO17 (TX)**: Connect to RX (e.g., Pin 5 on the connector) via a level shifter (5V → 3.3V).  
+  - **GPIO17 (TX)**: Connect to RX (e.g., Pin 5 on the connector) via a level shifter (12V → 3.3V).  
   - **GPIO18 (RX)**: Connect to TX (e.g., Pin 4 on the connector) via a level shifter.  
   - **GND**: Common ground with the level shifter and the board.  
   - **Power**: Use an LM2596S to convert 12V to 5V, then supply 3.3V to the ESP32-S3.
@@ -226,4 +226,3 @@
 - Connect to UART as shown in the photo and read raw data, adjusting the baud rate with the slider.  
 - When raw ASCII data starts coming in:  
 - Decode the data from ASCII using tools like a converter or manually (with an ASCII table), filtering noise and extracting commands to obtain readable speed and incline values.  
-- This is my method for decoding UART for a treadmill!
