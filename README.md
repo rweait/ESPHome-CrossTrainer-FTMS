@@ -214,9 +214,10 @@ ble_client:
 - Enable auto-incline support in Zwift.
 - Design an all-in-one board for easier assembly.
 - Create an ESPHome component for seamless ecosystem integration.
-- Integrate a distance sensor (TOF400C-VL53L1X) for button-free speed control.
+- :white_check_mark:Integrate a distance sensor (TOF400C-VL53L1X) for button-free speed control.
 - Implement MQTT data transmission for broader integration.
 - Build a web interface for control without Home Assistant.
+- Add step detection to measure running cadence.
 
 ## Changelog
 For a detailed history of changes, see [CHANGELOG.md](CHANGELOG.md).
