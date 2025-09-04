@@ -3,6 +3,8 @@ esphome:
   friendly_name: treadmill
   platformio_options:
     board_build.arduino.memory_type: qio_opi
+  includes:
+  - incline_profiles.h
 
   on_boot:
     - priority: 600
@@ -53,26 +55,31 @@ esphome:
             
 external_components:
   - source: github://mrtoy-me/esphome-components-test@main
+  #- source: github://samsonovss/esphome-vl53l1x@main
     components: [ vl53l1x ]
     refresh: 0s
-
-
 
 
 esp32:
   board: esp32-s3-devkitc-1
   framework:
-    type: arduino
+    type: esp-idf
+    sdkconfig_options:
+      COMPILER_OPTIMIZATION_SIZE: y
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: y
+      CONFIG_SPIRAM_RODATA: y
+      CONFIG_SPIRAM_MODE_OCT: y  
+      CONFIG_LV_MEM_CUSTOM: y 
+      CONFIG_LV_MEMCPY_MEMSET_STD: y 
+      CONFIG_LV_ATTRIBUTE_FAST_MEM: y 
   flash_size: 16MB
 
 psram:
   mode: octal
   speed: 80MHz
-
-
-
-
-
 
 mdns:
   disabled: false
@@ -99,11 +106,6 @@ mdns:
 logger:
   level: INFO
   baud_rate: 9600
-  # tx_buffer_size: 4096
-  # task_log_buffer_size: 2048
-  # logs:
-  #   WorkoutSummary: INFO
-  #   DEBUG: NONE
 
 # Enable Home Assistant API
 api:
@@ -129,11 +131,9 @@ captive_portal:
 i2c:
   sda: GPIO12
   scl: GPIO11
-  # sda: GPIO11
-  # scl: GPIO12
-  scan: false
+  scan: true
   id: bus_a
-  #frequency: 400kHz
+  frequency: 400kHz
 
   # #подключение платы pms
   # - id: uart_bus
@@ -168,10 +168,10 @@ uart:
   #подключение платы беговой дорожки
   - id: uart_bus
     tx_pin: 
-      number: GPIO18
+      number: GPIO17
       inverted: false
     rx_pin: 
-      number: GPIO17
+      number: GPIO18
       mode: 
         input: true
         pullup: true
@@ -373,28 +373,6 @@ time:
 # Глобальные переменные — обратная связь и управление беговой дорожкой
 globals:
 
-  # переменные для сохранения значений слайдеров
-  # - id: saved_treadmill_slider_min
-  #   type: int
-  #   restore_value: true
-  #   initial_value: '25'
-  # - id: saved_treadmill_slider_max
-  #   type: int
-  #   restore_value: true
-  #   initial_value: '85'
-  # - id: saved_treadmill_length
-  #   type: int
-  #   restore_value: true
-  #   initial_value: '100'
-  # - id: saved_accel_cm
-  #   type: int
-  #   restore_value: true
-  #   initial_value: '35'
-  # - id: saved_decel_cm
-  #   type: int
-  #   restore_value: true
-  #   initial_value: '62'
-
 # переменные для автокалибровки
   # Флаг, указывающий, что калибровка активна
   - id: calibration_active
@@ -500,13 +478,6 @@ globals:
     restore_value: no           # Не сохраняем значение после перезагрузки
     initial_value: '0'          # Начальное значение — 0
                                 # Используется для отслеживания времени отправки команд наклона (ограничение в 25 секунд)
-
-  # Указывает, активно ли управление наклоном в данный момент
-  # - id: incline_active
-  #   type: bool
-  #   restore_value: no           # Не сохраняем значение после перезагрузки
-  #   initial_value: 'false'      # Начальное значение — false (наклон не активен)
-  #                               # Используется для управления интервалом отправки команд наклона через UART
 
   # Хранит время загрузки устройства в миллисекундах
   - id: boot_time
@@ -847,20 +818,40 @@ globals:
     type: float
     initial_value: '0.0'  # Хранит количество сожжённого жира в граммах
 
-  - id: incline_profile_map_russia_ufa3_4km 
-    type: float[114]
-    restore_value: no
-    initial_value: "{20, 10, 20, 0, 0, 0, 0, 10, 50, 60, 0, 0, 0, 40, 60, 50, 130, 90, 0, 0, 0, 0, 0, 0, 0, 10, 20, 10, 20, 20, 20, 0, 0, 0, 0, 20, 40, 60, 70, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 60, 60, 60, 60, 30, 10, 10, 10, 0, 0, 90, 100, 0, 0, 0, 0, 40, 20, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 110, 140, 60, 0, 0, 30, 60, 40, 20, 20, 50, 40, 0, 0, 0, 0, 10, 30, 0, 0, 0, 0, 0, 30, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0}"
+  # - id: incline_profile_map_russia_ufa3_4km 
+  #   type: float[114]
+  #   restore_value: no
+  #   initial_value: "{20, 10, 20, 0, 0, 0, 0, 10, 50, 60, 0, 0, 0, 40, 60, 50, 130, 90, 0, 0, 0, 0, 0, 0, 0, 10, 20, 10, 20, 20, 20, 0, 0, 0, 0, 20, 40, 60, 70, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 60, 60, 60, 60, 30, 10, 10, 10, 0, 0, 90, 100, 0, 0, 0, 0, 40, 20, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 110, 140, 60, 0, 0, 30, 60, 40, 20, 20, 50, 40, 0, 0, 0, 0, 10, 30, 0, 0, 0, 0, 0, 30, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0}"
 
-  - id: incline_profile_map_sipailovo_circle_4_37km
-    type: float[146]
-    restore_value: no
-    initial_value: "{0, 40, 50, 0, 0, 0, 0, 0, 0, 70, 150, 100, 70, 40, 0, 0, 0, 0, 60, 70, 80, 80, 0, 0, 0, 0, 0, 0, 50, 100, 110, 70, 50, 20, 0, 0, 70, 90, 140, 0, 0, 0, 0, 0, 40, 80, 80, 20, 20, 0, 0, 0, 0, 0, 0, 80, 30, 0, 0, 90, 100, 0, 0, 0, 40, 100, 90, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 20, 20, 0, 0, 0, 0, 70, 10, 0, 0, 40, 70, 0, 10, 0, 0, 30, 0, 0, 0, 0, 0, 90, 80, 40, 0, 20, 40, 80, 50, 40, 0, 0, 30, 70, 70, 40, 0, 0, 10, 0, 0, 0, 0, 120, 60, 0, 0, 0, 0, 0, 0, 120, 150, 150, 30, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 10}"
+  # - id: incline_profile_map_sipailovo_circle_4_37km
+  #   type: float[146]
+  #   restore_value: no
+  #   initial_value: "{0, 40, 50, 0, 0, 0, 0, 0, 0, 70, 150, 100, 70, 40, 0, 0, 0, 0, 60, 70, 80, 80, 0, 0, 0, 0, 0, 0, 50, 100, 110, 70, 50, 20, 0, 0, 70, 90, 140, 0, 0, 0, 0, 0, 40, 80, 80, 20, 20, 0, 0, 0, 0, 0, 0, 80, 30, 0, 0, 90, 100, 0, 0, 0, 40, 100, 90, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 20, 20, 0, 0, 0, 0, 70, 10, 0, 0, 40, 70, 0, 10, 0, 0, 30, 0, 0, 0, 0, 0, 90, 80, 40, 0, 20, 40, 80, 50, 40, 0, 0, 30, 70, 70, 40, 0, 0, 10, 0, 0, 0, 0, 120, 60, 0, 0, 0, 0, 0, 0, 120, 150, 150, 30, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 10}"
 
-  - id: incline_profile_map_sipailovo_Kashkadan_1_72km
-    type: float[58]
-    restore_value: no
-    initial_value: "{30, 0, 0, 60, 0, 0, 0, 70, 150, 150, 150, 80, 70, 10, 70, 20, 50, 10, 0, 20, 50, 80, 30, 0, 0, 0, 0, 0, 0, 20, 10, 0, 50, 0, 0, 30, 60, 0, 0, 0, 0, 30, 100, 0, 0, 0, 0, 0, 0, 50, 60, 0, 0, 0, 0, 100, 30, 0}"
+  # - id: incline_profile_map_sipailovo_Kashkadan_1_72km
+  #   type: float[58]
+  #   restore_value: no
+  #   initial_value: "{30, 0, 0, 60, 0, 0, 0, 70, 150, 150, 150, 80, 70, 10, 70, 20, 50, 10, 0, 20, 50, 80, 30, 0, 0, 0, 0, 0, 0, 20, 10, 0, 50, 0, 0, 30, 60, 0, 0, 0, 0, 30, 100, 0, 0, 0, 0, 0, 0, 50, 60, 0, 0, 0, 0, 100, 30, 0}"
+
+  # - id: incline_profile_map_russia_ufa3_4km_2d
+  #   type: float[114][2]
+  #   restore_value: no
+  #   initial_value: "{{ {0.0,2.0}, {0.03,1.0}, {0.06,2.0}, {0.09,0.0}, {0.12,0.0}, {0.15,0.0}, {0.18,0.0}, {0.21,1.0}, {0.24,5.0}, {0.27,6.0}, {0.3,0.0}, {0.33,0.0}, {0.36,0.0}, {0.39,4.0}, {0.42,6.0}, {0.45,5.0}, {0.48,13.0}, {0.51,9.0}, {0.54,0.0}, {0.57,0.0}, {0.6,0.0}, {0.63,0.0}, {0.66,0.0}, {0.69,0.0}, {0.72,0.0}, {0.75,1.0}, {0.78,2.0}, {0.81,1.0}, {0.84,2.0}, {0.87,2.0}, {0.9,2.0}, {0.93,0.0}, {0.96,0.0}, {0.99,0.0}, {1.02,0.0}, {1.05,2.0}, {1.08,4.0}, {1.11,6.0}, {1.14,7.0}, {1.17,2.0}, {1.2,0.0}, {1.23,0.0}, {1.26,0.0}, {1.29,0.0}, {1.32,0.0}, {1.35,0.0}, {1.38,0.0}, {1.41,0.0}, {1.44,0.0}, {1.47,6.0}, {1.5,6.0}, {1.53,6.0}, {1.56,6.0}, {1.59,3.0}, {1.62,1.0}, {1.65,1.0}, {1.68,1.0}, {1.71,0.0}, {1.74,0.0}, {1.77,9.0}, {1.8,10.0}, {1.83,0.0}, {1.86,0.0}, {1.89,0.0}, {1.92,0.0}, {1.95,4.0}, {1.98,2.0}, {2.01,0.0}, {2.04,0.0}, {2.07,0.0}, {2.1,0.0}, {2.13,1.0}, {2.16,0.0}, {2.19,0.0}, {2.22,0.0}, {2.25,0.0}, {2.28,0.0}, {2.31,0.0}, {2.34,0.0}, {2.37,0.0}, {2.4,11.0}, {2.43,14.0}, {2.46,6.0}, {2.49,0.0}, {2.52,0.0}, {2.55,3.0}, {2.58,6.0}, {2.61,4.0}, {2.64,2.0}, {2.67,2.0}, {2.7,5.0}, {2.73,4.0}, {2.76,0.0}, {2.79,0.0}, {2.82,0.0}, {2.85,0.0}, {2.88,1.0}, {2.91,3.0}, {2.94,0.0}, {2.97,0.0}, {3.0,0.0}, {3.03,0.0}, {3.06,0.0}, {3.09,3.0}, {3.12,6.0}, {3.15,0.0}, {3.18,0.0}, {3.21,0.0}, {3.24,0.0}, {3.27,0.0}, {3.3,0.0}, {3.33,0.0}, {3.36,0.0}, {3.39,0.0} }}"
+
+  # - id: incline_profile_map_sipailovo_circle_4_37km_2d
+  #   type: float[146][2]
+  #   restore_value: no
+  #   initial_value: "{{ {0.0,0.0}, {0.03,4.0}, {0.06,5.0}, {0.09,0.0}, {0.12,0.0}, {0.15,0.0}, {0.18,0.0}, {0.21,0.0}, {0.24,0.0}, {0.27,7.0}, {0.3,15.0}, {0.33,10.0}, {0.36,7.0}, {0.39,4.0}, {0.42,0.0}, {0.45,0.0}, {0.48,0.0}, {0.51,0.0}, {0.54,6.0}, {0.57,7.0}, {0.6,8.0}, {0.63,8.0}, {0.66,0.0}, {0.69,0.0}, {0.72,0.0}, {0.75,0.0}, {0.78,0.0}, {0.81,0.0}, {0.84,5.0}, {0.87,10.0}, {0.9,11.0}, {0.93,7.0}, {0.96,5.0}, {0.99,2.0}, {1.02,0.0}, {1.05,0.0}, {1.08,7.0}, {1.11,9.0}, {1.14,14.0}, {1.17,0.0}, {1.2,0.0}, {1.23,0.0}, {1.26,0.0}, {1.29,0.0}, {1.32,4.0}, {1.35,8.0}, {1.38,8.0}, {1.41,2.0}, {1.44,2.0}, {1.47,0.0}, {1.5,0.0}, {1.53,0.0}, {1.56,0.0}, {1.59,0.0}, {1.62,0.0}, {1.65,8.0}, {1.68,3.0}, {1.71,0.0}, {1.74,0.0}, {1.77,9.0}, {1.8,10.0}, {1.83,0.0}, {1.86,0.0}, {1.89,0.0}, {1.92,4.0}, {1.95,10.0}, {1.98,9.0}, {2.01,0.0}, {2.04,0.0}, {2.07,0.0}, {2.1,0.0}, {2.13,0.0}, {2.16,0.0}, {2.19,0.0}, {2.22,0.0}, {2.25,0.0}, {2.28,2.0}, {2.31,2.0}, {2.34,2.0}, {2.37,0.0}, {2.4,0.0}, {2.43,0.0}, {2.46,0.0}, {2.49,7.0}, {2.52,1.0}, {2.55,0.0}, {2.58,0.0}, {2.61,4.0}, {2.64,7.0}, {2.67,0.0}, {2.7,1.0}, {2.73,0.0}, {2.76,0.0}, {2.79,3.0}, {2.82,0.0}, {2.85,0.0}, {2.88,0.0}, {2.91,0.0}, {2.94,0.0}, {2.97,9.0}, {3.0,8.0}, {3.03,4.0}, {3.06,0.0}, {3.09,2.0}, {3.12,4.0}, {3.15,8.0}, {3.18,5.0}, {3.21,4.0}, {3.24,0.0}, {3.27,0.0}, {3.3,3.0}, {3.33,7.0}, {3.36,7.0}, {3.39,4.0}, {3.42,0.0}, {3.45,0.0}, {3.48,1.0}, {3.51,0.0}, {3.54,0.0}, {3.57,0.0}, {3.6,0.0}, {3.63,12.0}, {3.66,6.0}, {3.69,0.0}, {3.72,0.0}, {3.75,0.0}, {3.78,0.0}, {3.81,0.0}, {3.84,0.0}, {3.87,12.0}, {3.9,15.0}, {3.93,15.0}, {3.96,3.0}, {3.99,2.0}, {4.02,0.0}, {4.05,0.0}, {4.08,0.0}, {4.11,0.0}, {4.14,0.0}, {4.17,0.0}, {4.2,0.0}, {4.23,0.0}, {4.26,0.0}, {4.29,1.0}, {4.32,0.0}, {4.35,1.0} }}"
+
+  # - id: incline_profile_map_sipailovo_Kashkadan_1_72km_2d
+  #   type: float[58][2]
+  #   restore_value: no
+  #   initial_value: "{{ {0.0,3.0}, {0.03,0.0}, {0.06,0.0}, {0.09,6.0}, {0.12,0.0}, {0.15,0.0}, {0.18,0.0}, {0.21,7.0}, {0.24,15.0}, {0.27,15.0}, {0.3,15.0}, {0.33,8.0}, {0.36,7.0}, {0.39,1.0}, {0.42,7.0}, {0.45,2.0}, {0.48,5.0}, {0.51,1.0}, {0.54,0.0}, {0.57,2.0}, {0.6,5.0}, {0.63,8.0}, {0.66,3.0}, {0.69,0.0}, {0.72,0.0}, {0.75,0.0}, {0.78,0.0}, {0.81,0.0}, {0.84,0.0}, {0.87,2.0}, {0.9,1.0}, {0.93,0.0}, {0.96,5.0}, {0.99,0.0}, {1.02,0.0}, {1.05,3.0}, {1.08,6.0}, {1.11,0.0}, {1.14,0.0}, {1.17,0.0}, {1.2,0.0}, {1.23,3.0}, {1.26,10.0}, {1.29,0.0}, {1.32,0.0}, {1.35,0.0}, {1.38,0.0}, {1.41,0.0}, {1.44,0.0}, {1.47,5.0}, {1.5,6.0}, {1.53,0.0}, {1.56,0.0}, {1.59,0.0}, {1.62,0.0}, {1.65,10.0}, {1.68,3.0}, {1.71,0.0} }}"
+
+  # - id: incline_profile_zwift_Epic_Run_6_2km
+  #   type: float[148][2]
+  #   restore_value: no
+  #   initial_value: "{{ {0.061,1}, {0.119,0}, {0.128,1}, {0.203,3}, {0.211,4}, {0.219,5}, {0.228,4}, {0.303,5}, {0.336,6}, {0.344,7}, {0.353,8}, {0.361,9}, {0.369,10}, {0.378,12}, {0.386,13}, {0.394,15}, {0.436,13}, {0.453,12}, {0.469,11}, {0.493,13}, {0.503,14}, {0.519,13}, {0.534,14}, {0.551,13}, {0.559,12}, {0.569,10}, {0.576,7}, {0.584,4}, {0.593,1}, {0.603,0}, {0.701,7}, {0.709,14}, {0.718,15}, {0.776,6}, {0.784,0}, {0.851,1}, {0.859,3}, {0.868,5}, {0.876,6}, {0.884,7}, {0.893,8}, {0.909,9}, {0.918,10}, {0.934,12}, {0.951,13}, {0.976,14}, {1.019,13}, {1.026,14}, {1.043,13}, {1.093,12}, {1.109,11}, {1.126,10}, {1.134,9}, {1.143,8}, {1.151,7}, {1.159,6}, {1.168,5}, {1.176,4}, {1.184,3}, {1.201,2}, {1.209,1}, {1.234,0}, {1.309,1}, {1.343,0}, {1.791,2}, {1.799,4}, {1.808,6}, {1.816,8}, {1.824,9}, {1.833,10}, {1.841,11}, {1.849,12}, {1.866,13}, {1.916,12}, {1.941,13}, {1.958,14}, {1.966,13}, {2.008,14}, {2.041,15}, {2.074,14}, {2.091,13}, {2.099,14}, {2.108,13}, {2.166,14}, {2.183,13}, {2.191,14}, {2.199,13}, {2.216,12}, {2.258,13}, {2.266,12}, {2.274,11}, {2.306,10}, {2.324,11}, {2.331,12}, {2.364,13}, {2.373,12}, {2.431,11}, {2.439,12}, {2.464,11}, {2.489,10}, {2.548,11}, {2.576,12}, {2.581,11}, {2.589,12}, {2.614,13}, {2.623,12}, {2.631,13}, {2.639,11}, {2.648,12}, {2.656,11}, {2.689,10}, {2.706,9}, {2.731,8}, {2.748,7}, {2.756,6}, {2.773,5}, {2.781,4}, {2.789,3}, {2.806,2}, {2.831,1}, {2.915,0}, {3.073,1}, {3.081,2}, {3.09,1}, {3.106,0}, {3.205,4}, {3.215,11}, {3.221,15}, {4.286,14}, {4.295,10}, {4.303,6}, {4.313,2}, {4.320,0}, {4.336,2}, {4.353,1}, {4.386,0}, {4.428,1}, {4.436,2}, {4.470,1}, {4.486,0}, {5.751,7}, {5.759,13}, {5.768,15}, {5.826,12}, {5.834,4}, {5.843,1}, {5.851,0}, {6.200,0} }}"
 
 
 # Скрипты
@@ -1955,75 +1946,165 @@ script:
           combined_log.clear();
           ESP_LOGI("WorkoutSummary", "Log finished and cleared");
 
-
-  # Скрипт для управления наклоном на основе дистанции
   - id: update_incline_by_map
     then:
       - lambda: |-
-          // Определение маршрутов
-          struct MapConfig {
-            const char* name;
-            float* array;
-            int max_index;
-            float max_distance;
+          struct Map2D { const char* name; const float (*arr)[2]; int len; };
+          Map2D maps[] = {
+            {"Russia, Ufa 3.4km", incline_profile_map_russia_ufa3_4km_2d, 114},
+            {"Russia, Ufa Sipailovo 4.4km", incline_profile_map_sipailovo_circle_4_37km_2d, 146},
+            {"Russia, Ufa Kashkadan 1.7km", incline_profile_map_sipailovo_Kashkadan_1_72km_2d, 58},
+            {"Zwift Epic Run 6.2km", incline_profile_Epic_Run_6_2km, 149},
+            {"Zwift 5K loop 5.0km", incline_profile_5K_loop_5_0km, 67},
+            {"Zwift Mountain Mash 5.9km", incline_profile_Mountain_Mash_5_9km, 106},
+            {"Zwift Chili Pepper 8.0km", incline_profile_Chili_Pepper_8_0km, 156},
           };
-          MapConfig maps[] = {
-            {"Russia, Ufa 3.4km", id(incline_profile_map_russia_ufa3_4km), 113, 3420.0},
-            {"Russia, Ufa Sipailovo 4.4km", id(incline_profile_map_sipailovo_circle_4_37km), 145, 4373.4},
-            {"Russia, Ufa Kashkadan 1.72km", id(incline_profile_map_sipailovo_Kashkadan_1_72km), 57, 1719.6},
-          };
-          const int map_count = 3;
+          const int map_count = sizeof(maps) / sizeof(maps[0]);
 
-          // Проверяем, выбрана ли карта
-          const char* selected_map = id(map_select).state.c_str();
-          MapConfig* current_map = nullptr;
-          for (int i = 0; i < map_count; i++) {
-            if (strcmp(selected_map, maps[i].name) == 0) {
-              current_map = &maps[i];
-              break;
+          const char* selected = id(map_select).state.c_str();
+          float cur_km = id(treadmill_distance_km).state;
+
+          for (int m = 0; m < map_count; m++) {
+            if (strcmp(selected, maps[m].name) == 0) {
+              float last_dist = maps[m].arr[maps[m].len - 1][0];
+              if (cur_km >= last_dist) {
+                id(set_incline).publish_state(0.0);
+                ESP_LOGI("InclineMap", "Map '%s' end reached (%.3f km >= %.3f km)", selected, cur_km, last_dist);
+                id(stop_program).execute();
+                return;
+              }
+
+              float target_inc = maps[m].arr[0][1]; // по умолчанию — первая точка
+              for (int i = 0; i < maps[m].len; i++) {
+                if (cur_km >= maps[m].arr[i][0]) {
+                  target_inc = maps[m].arr[i][1];
+                } else {
+                  break; // нашли первую точку дальше текущей дистанции
+                }
+              }
+
+              // защита от выхода за пределы
+              if (target_inc < 0.0) target_inc = 0.0;
+              if (target_inc > 15.0) target_inc = 15.0;
+
+              // меняем только если реально изменилось
+              if (fabs(id(set_incline).state - target_inc) > 0.01) {
+                id(set_incline).publish_state(target_inc);
+                ESP_LOGI("InclineMap", "Map '%s' dist=%.3f km -> incline=%.2f%%", selected, cur_km, target_inc);
+              }
+              return;
             }
           }
-          if (current_map == nullptr) {
-            // Если карта не выбрана или "None", просто выходим, не сбрасывая наклон
-            ESP_LOGI("InclineMap", "Map not selected, skipping auto incline adjustment");
-            return;
-          }
+          ESP_LOGI("InclineMap", "Map '%s' not found", selected);
 
-          // Получаем текущую дистанцию в метрах
-          float distance_km = id(treadmill_distance_km).state;
-          float distance_m = distance_km * 1000.0;
+  # - id: update_incline_by_map
+  #   then:
+  #     - lambda: |-
+  #         struct Map2D { const char* name; const float (*arr)[2]; int len; };
+  #         Map2D maps[] = {
+  #           {"Russia, Ufa 3.4km", incline_profile_map_russia_ufa3_4km_2d, 114},
+  #           {"Russia, Ufa Sipailovo 4.4km", incline_profile_map_sipailovo_circle_4_37km_2d, 146},
+  #           {"Russia, Ufa Kashkadan 1.7km", incline_profile_map_sipailovo_Kashkadan_1_72km_2d, 58},
+  #           {"Zwift Epic Run 6.2km", incline_profile_zwift_Epic_Run_6_2km, 148},
+  #         };
+  #         const int map_count = sizeof(maps) / sizeof(maps[0]);
 
-          // Проверяем, достигнута ли последняя точка
-          if (distance_m >= current_map->max_distance) {
-            id(set_incline).publish_state(0.0); // Сбрасываем наклон перед остановкой
-            ESP_LOGI("InclineMap", "End of map reached at %.2f m, stopping program", distance_m);
-            id(stop_program).execute();
-            return;
-          }
+  #         const char* selected = id(map_select).state.c_str();
+  #         float cur_km = id(treadmill_distance_km).state;
 
-          // Рассчитываем индекс массива (каждые 30 метров)
-          int index = static_cast<int>(distance_m / 30.0);
+  #         for (int m = 0; m < map_count; m++) {
+  #           if (strcmp(selected, maps[m].name) == 0) {
+  #             float last_dist = maps[m].arr[maps[m].len - 1][0];
+  #             if (cur_km >= last_dist) {
+  #               id(set_incline).publish_state(0.0);
+  #               ESP_LOGI("InclineMap", "Map '%s' end reached (%.3f km >= %.3f km)", selected, cur_km, last_dist);
+  #               id(stop_program).execute();
+  #               return;
+  #             }
 
-          // Проверяем, чтобы индекс не превышал длину массива
-          if (index > current_map->max_index) {
-            index = current_map->max_index;
-            ESP_LOGI("InclineMap", "Reached end of map at distance %.2f m, using last incline", distance_m);
-          }
+  #             float target_inc = maps[m].arr[maps[m].len - 1][1];
+  #             if (cur_km <= maps[m].arr[0][0]) {
+  #               target_inc = maps[m].arr[0][1];
+  #             } else {
+  #               for (int i = 0; i < maps[m].len - 1; i++) {
+  #                 float d0 = maps[m].arr[i][0];
+  #                 float d1 = maps[m].arr[i+1][0];
+  #                 if (cur_km >= d0 && cur_km <= d1) {
+  #                   float inc0 = maps[m].arr[i][1];
+  #                   float inc1 = maps[m].arr[i+1][1];
+  #                   float t = (d1 - d0) > 1e-6 ? (cur_km - d0) / (d1 - d0) : 0.0;
+  #                   target_inc = inc0 + t * (inc1 - inc0);
+  #                   break;
+  #                 }
+  #               }
+  #             }
 
-          // Получаем значение наклона из массива (в единицах беговой дорожки, где 1% = 10 единиц)
-          float new_incline_units = current_map->array[index];
-          float new_incline_percent = new_incline_units / 10.0; // Преобразуем в проценты (0-15%)
+  #             if (target_inc < 0.0) target_inc = 0.0;
+  #             if (target_inc > 15.0) target_inc = 15.0;
+  #             if (fabs(id(set_incline).state - target_inc) > 0.01) {
+  #               id(set_incline).publish_state(target_inc);
+  #               ESP_LOGI("InclineMap", "Map '%s' dist=%.3f km -> incline=%.2f%%", selected, cur_km, target_inc);
+  #             }
+  #             return;
+  #           }
+  #         }
+  #         ESP_LOGI("InclineMap", "Map '%s' not found", selected);
 
-          // Ограничиваем значение в диапазоне 0-15%
-          if (new_incline_percent > 15.0) new_incline_percent = 15.0;
-          if (new_incline_percent < 0.0) new_incline_percent = 0.0;
+  # - id: update_incline_by_map
+  #   then:
+  #     - lambda: |-
+  #         struct Map2D { const char* name; float (*arr)[2]; int len; };
+  #         Map2D maps[] = {
+  #           {"Russia, Ufa 3.4km", id(incline_profile_map_russia_ufa3_4km_2d), 114},
+  #           {"Russia, Ufa Sipailovo 4.4km", id(incline_profile_map_sipailovo_circle_4_37km_2d), 146},
+  #           {"Russia, Ufa Kashkadan 1.7km", id(incline_profile_map_sipailovo_Kashkadan_1_72km_2d), 58},
+  #           {"Zwift Epic Run 6.2km", id(incline_profile_zwift_Epic_Run_6_2km), 148},
+  #         };
+  #         const int map_count = sizeof(maps) / sizeof(maps[0]);
 
-          // Устанавливаем новое значение в ползунок, если оно отличается
-          if (fabs(id(set_incline).state - new_incline_percent) > 0.01) {
-            id(set_incline).publish_state(new_incline_percent);
-            ESP_LOGI("InclineMap", "Distance: %.2f m, Index: %d, New Incline: %.1f%% via slider", distance_m, index, new_incline_percent);
-          }
+  #         const char* selected = id(map_select).state.c_str();
+  #         float cur_km = id(treadmill_distance_km).state;
 
+  #         for (int m = 0; m < map_count; m++) {
+  #           if (strcmp(selected, maps[m].name) == 0) {
+  #             float last_dist = maps[m].arr[maps[m].len - 1][0];
+  #             if (cur_km >= last_dist) {
+  #               id(set_incline).publish_state(0.0);
+  #               ESP_LOGI("InclineMap", "Map '%s' end reached (%.3f km >= %.3f km)", selected, cur_km, last_dist);
+  #               id(stop_program).execute();
+  #               return;
+  #             }
+
+  #             // линейная интерполяция между двумя точками
+  #             float target_inc = maps[m].arr[maps[m].len - 1][1];
+  #             if (cur_km <= maps[m].arr[0][0]) {
+  #               target_inc = maps[m].arr[0][1];
+  #             } else {
+  #               for (int i = 0; i < maps[m].len - 1; i++) {
+  #                 float d0 = maps[m].arr[i][0];
+  #                 float d1 = maps[m].arr[i+1][0];
+  #                 if (cur_km >= d0 && cur_km <= d1) {
+  #                   float inc0 = maps[m].arr[i][1];
+  #                   float inc1 = maps[m].arr[i+1][1];
+  #                   float t = (d1 - d0) > 1e-6 ? (cur_km - d0) / (d1 - d0) : 0.0;
+  #                   target_inc = inc0 + t * (inc1 - inc0);
+  #                   break;
+  #                 }
+  #               }
+  #             }
+
+  #             // границы и применение
+  #             if (target_inc < 0.0) target_inc = 0.0;
+  #             if (target_inc > 15.0) target_inc = 15.0;
+  #             if (fabs(id(set_incline).state - target_inc) > 0.01) {
+  #               id(set_incline).publish_state(target_inc);
+  #               ESP_LOGI("InclineMap", "Map '%s' dist=%.3f km -> incline=%.2f%%", selected, cur_km, target_inc);
+  #             }
+  #             return;
+  #           }
+  #         }
+
+  #         ESP_LOGI("InclineMap", "Map '%s' not found", selected);
 
 
 
@@ -2328,151 +2409,6 @@ script:
             ESP_LOGI("FTMS", "Отправлено уведомление: Idle (0x01)");
           }
       - script.execute: stop_program
-
-  # - id: start_calibration
-  #   mode: restart
-  #   then:
-  #     - lambda: |- 
-  #         id(calibration_active) = true;
-  #         id(calibration_min_distance) = 9999.0;  // Сбрасываем минимальное расстояние
-  #         id(calibration_max_distance) = 0.0;    // Сбрасываем максимальное расстояние
-  #         id(calibration_start_time) = millis(); // Запоминаем время начала
-  #         id(motor_running) = true;              // Запускаем мотор
-  #         id(manual_stop) = false;               // Сбрасываем ручную остановку
-  #         id(target_speed) = 40;                 // Устанавливаем скорость 4 км/ч (40 в формате 1 км/ч = 10)
-  #         id(target_speed_goal) = 40;
-  #         id(set_speed).publish_state(4.0);      // Устанавливаем скорость в интерфейсе
-  #         id(program_status).publish_state("Калибровка: Бегите в передней зоне");
-
-
-  #         id(display_nextion).set_component_text("t_info_calib", "    Step 1:\\rFront zone\\r      30s");
-  #         id(display_nextion).send_command_printf("p_zone.pic=76"); // rкартинка зоны 
-  #         ESP_LOGI("Calibration", "Калибровка начата, скорость установлена на 4 км/ч");
-
-  #         // Fitness Machine Status: Started or Resumed (0x04)
-  #         std::vector<uint8_t> status = {0x04};
-  #         id(ftms_status_char).set_value(status);
-  #         id(ftms_status_char).notify();
-  #         id(last_ftms_status) = status;
-  #         id(ftms_status_sensor).publish_state(id(ftms_status_to_string)(0x04));
-  #         ESP_LOGI("FTMS", "Отправлено уведомление: Started or Resumed (0x04)");
-
-  #         // Training Status: Other (0x00)
-  #         std::vector<uint8_t> training_status = {0x00, 0x00};
-  #         id(training_status_char).set_value(training_status);
-  #         id(training_status_char).notify();
-  #         id(last_training_status) = training_status;
-  #         id(training_status_sensor).publish_state(id(training_status_to_string)(0x00));
-  #         ESP_LOGI("FTMS", "Отправлено уведомление: Other (0x00)");
-  #     - delay: 30s  # Первые 30 секунд — бег в передней зоне
-  #     - lambda: |- 
-  #         id(program_status).publish_state("Калибровка: Бегите в задней зоне");
-  #         id(display_nextion).set_component_text("t_info_calib", "   Step 2:\\rRear zone\\r     30s");
-  #         id(display_nextion).send_command_printf("p_zone.pic=77"); // rкартинка зоны 
-  #         ESP_LOGI("Calibration", "Переключение на заднюю зону");
-  #     - delay: 30s  # Следующие 30 секунд — бег в задней зоне
-  #     - lambda: |- 
-  #         if (id(calibration_active)) {
-  #           // Проверяем, были ли собраны валидные данные
-  #           if (id(calibration_min_distance) < 9999.0 && id(calibration_max_distance) > 0.0) {
-  #             // Округляем значения для слайдеров
-  #             int min_distance = (int)round(id(calibration_min_distance));
-  #             int max_distance = (int)round(id(calibration_max_distance));
-
-  #             // Проверяем диапазоны для treadmill_slider_min (0–40)
-  #             if (min_distance >= 0 && min_distance <= 40) {
-  #               id(treadmill_slider_min).publish_state(min_distance);
-  #             } else {
-  #               id(treadmill_slider_min).publish_state(25); // Значение по умолчанию
-  #               ESP_LOGW("Calibration", "Минимальное расстояние вне диапазона: %d см, установлено 25 см", min_distance);
-  #             }
-
-  #             // Проверяем диапазоны для treadmill_slider_max (60–120)
-  #             if (max_distance >= 60 && max_distance <= 120) {
-  #               id(treadmill_slider_max).publish_state(max_distance);
-
-  #             } else {
-  #               id(treadmill_slider_max).publish_state(85); // Значение по умолчанию
-  #               ESP_LOGW("Calibration", "Максимальное расстояние вне диапазона: %d см, установлено 85 см", max_distance);
-  #             }
-
-  #             // Вычисляем длину дорожки: max + 30 см
-  #             float calculated_treadmill_length = id(calibration_max_distance) + 30.0;
-  #             int treadmill_length_int = (int)round(calculated_treadmill_length);
-  #             if (treadmill_length_int >= 80 && treadmill_length_int <= 140) {
-  #               id(treadmill_length).publish_state(treadmill_length_int);
-  #             } else {
-  #               id(treadmill_length).publish_state(100); // Значение по умолчанию
-  #               ESP_LOGW("Calibration", "Длина дорожки вне диапазона: %d см, установлено 100 см", treadmill_length_int);
-  #             }
-
-  #             // Зоны ускорения и замедления
-  #             float accel_zone = id(calibration_min_distance) + 12.0;
-  #             float decel_zone = id(calibration_max_distance) - 12.0;
-  #             int accel_zone_int = (int)round(accel_zone);
-  #             int decel_zone_int = (int)round(decel_zone);
-
-  #             // Проверяем диапазоны для accel_cm (20–60)
-  #             if (accel_zone_int >= 20 && accel_zone_int <= 60) {
-  #               id(accel_cm).publish_state(accel_zone_int);
-  #             } else {
-  #               id(accel_cm).publish_state(35); // Значение по умолчанию
-  #               ESP_LOGW("Calibration", "Зона ускорения вне диапазона: %d см, установлено 35 см", accel_zone_int);
-  #             }
-
-  #             // Проверяем диапазоны для decel_cm (60–90)
-  #             if (decel_zone_int >= 60 && decel_zone_int <= 90) {
-  #               id(decel_cm).publish_state(decel_zone_int);
-  #             } else {
-  #               id(decel_cm).publish_state(62); // Значение по умолчанию
-  #               ESP_LOGW("Calibration", "Зона замедления вне диапазона: %d см, установлено 62 см", decel_zone_int);
-  #             }
-
-  #             id(program_status).publish_state("Калибровка завершена");
-  #             id(display_nextion).set_component_text("t_info_calib", " Calibration\\r  Complete");
-  #             id(display_nextion).send_command_printf("p_zone.pic=75"); // картинка зоны 
-
-
-  #             id(display_nextion).set_component_text_printf("caldistspeed.t_speed_up", "%d", (int)id(accel_cm).state);
-  #             id(display_nextion).set_component_text_printf("caldistspeed.t_speed_down", "%d", (int)id(decel_cm).state);
-  #             id(display_nextion).set_component_text_printf("caldistspeed.t_lenght", "%d", (int)id(treadmill_length).state);
-  #             id(display_nextion).set_component_text("b_cal", "Calibrate");
-
-
-  #             ESP_LOGI("Calibration", "Калибровка завершена: min=%d см, max=%d см, длина=%d см, accel=%d см, decel=%d см",
-  #                      min_distance, max_distance, treadmill_length_int, accel_zone_int, decel_zone_int);
-  #           } else {
-  #             id(program_status).publish_state("Калибровка: Ошибка данных");
-  #             id(display_nextion).set_component_text("t_info_calib", "Calibration\\r     Eror");
-  #             ESP_LOGW("Calibration", "Ошибка: недостаточно данных с датчика");
-  #           }
-
-  #           // Останавливаем дорожку
-  #           id(motor_running) = false;
-  #           id(target_speed) = 0;
-  #           id(target_speed_goal) = 0;
-  #           id(set_speed).publish_state(0.0);
-  #           id(treadmill_speed_sensor_uart).publish_state(0.0);
-  #           id(calibration_active) = false;
-
-  #           // Fitness Machine Status: Stopped or Paused (0x02)
-  #           std::vector<uint8_t> status = {0x02};
-  #           id(ftms_status_char).set_value(status);
-  #           id(ftms_status_char).notify();
-  #           id(last_ftms_status) = status;
-  #           id(ftms_status_sensor).publish_state(id(ftms_status_to_string)(0x02));
-  #           ESP_LOGI("FTMS", "Отправлено уведомление: Stopped or Paused (0x02)");
-
-  #           // Training Status: Idle (0x01)
-  #           std::vector<uint8_t> training_status = {0x00, 0x01};
-  #           id(training_status_char).set_value(training_status);
-  #           id(training_status_char).notify();
-  #           id(last_training_status) = training_status;
-  #           id(training_status_sensor).publish_state(id(training_status_to_string)(0x01));
-  #           ESP_LOGI("FTMS", "Отправлено уведомление: Idle (0x01)");
-  #         }
-  #     - script.execute: stop_program
-
 
 # Интервал для свободного режима
 interval:
@@ -2798,6 +2734,15 @@ interval:
 button:
 
   - platform: template
+    id: update_nextion_button
+    name: Update Nextion
+    entity_category: diagnostic
+    on_press:
+      then:
+        - lambda: 'id(display_nextion)->upload_tft();'
+
+
+  - platform: template
     id: calibration_button
     name: "Start Calibration"
     on_press:
@@ -2920,6 +2865,33 @@ one_wire:
 
 # Сенсоры
 sensor:
+
+# Сенсор для для выбора карты
+  - platform: nextion
+    name: "Map ID"
+    id: map_id_sensor
+    variable_name: "mapid"
+    #update_interval: 1s
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    on_value:
+      then:
+        - lambda: |-
+            if (x == 1) {
+              id(map_select).publish_state("Russia, Ufa 3.4km");
+            } else if (x == 2) {
+              id(map_select).publish_state("Russia, Ufa Sipailovo 4.4km");
+            } else if (x == 3) {
+              id(map_select).publish_state("Russia, Ufa Kashkadan 1.7km");
+            } else if (x == 4) {
+              id(map_select).publish_state("Zwift Epic Run 6.2km");
+            } else if (x == 5) {
+              id(map_select).publish_state("Zwift 5K loop 5.0km");
+            } else if (x == 6) {
+              id(map_select).publish_state("Zwift Mountain Mash 5.9km");
+            } else if (x == 7) {
+              id(map_select).publish_state("Zwift Chili Pepper 8.0km");
+            }
 # Сенсор для ползунка на экране яркость
   - platform: nextion
     id: nextion_slider
@@ -3051,6 +3023,7 @@ sensor:
             int tempmotor = (int)id(temp).state;
             //if (id(speed).state) {
             id(display_nextion).send_command_printf("speed.ntemp.val=%d", tempmotor);
+            id(display_nextion).send_command_printf("motor.ntemp.val=%d", tempmotor);
             //}
 
   - platform: template
@@ -3277,15 +3250,15 @@ sensor:
             id(display_nextion).set_component_text("t4", incline_str); // Установка строки в текстовый компонент
           }
 
-  - platform: template
-    name: "ESP32 Free Memory"
-    lambda: |-
-      return (float)ESP.getFreeHeap() / 1024.0;
-    unit_of_measurement: "kB"
-    accuracy_decimals: 1
-    update_interval: 60s
-    entity_category: diagnostic
-    icon: "mdi:memory"
+  # - platform: template
+  #   name: "ESP32 Free Memory"
+  #   lambda: |-
+  #     return (float)ESP.getFreeHeap() / 1024.0;
+  #   unit_of_measurement: "kB"
+  #   accuracy_decimals: 1
+  #   update_interval: 60s
+  #   entity_category: diagnostic
+  #   icon: "mdi:memory"
 
   - platform: wifi_signal
     name: "ESP32 WiFi Signal"
@@ -3952,6 +3925,27 @@ binary_sensor:
 
 
   - platform: nextion
+    page_id: 16
+    component_id: 0
+    id: info_page
+    on_press:
+      then:
+       # - component.update: display_nextion
+        - lambda: |-
+            id(display_nextion).set_component_text_printf("tVersion", id(ESPHomeVersion).state.c_str());
+            ESP_LOGI("Nextion", "info_page (page 16) opened");
+
+  - platform: nextion
+    page_id: 17
+    component_id: 0
+    id: motor_page
+    on_press:
+      then:
+       # - component.update: display_nextion
+        - lambda: |-
+            ESP_LOGI("Nextion", "motor_page (page 17) opened");
+
+  - platform: nextion
     page_id: 15
     component_id: 0
     id: caldistspeed
@@ -4034,6 +4028,7 @@ binary_sensor:
             id(display_nextion).send_command_printf("age.bt0.val=%d", button_val);
             ESP_LOGI("Nextion", "Age tab (page 3) opened");
 
+
   - platform: nextion
     page_id: 5
     component_id: 0
@@ -4101,6 +4096,18 @@ binary_sensor:
             id(bquick_start).publish_state(false);
 
   - platform: nextion
+    page_id: 11
+    component_id: 1
+    id: bquick_start1
+    on_press:
+      then:
+        - delay: 3400ms
+        - script.execute: start_manual
+        - lambda: |-
+            id(program_select).publish_state("None");
+            id(bquick_start).publish_state(false);
+
+  - platform: nextion
     page_id: 0
     component_id: 7
     id: bfree_run
@@ -4113,6 +4120,19 @@ binary_sensor:
             id(program_select).publish_state("None");
             id(bfree_run).publish_state(false);
 
+
+  - platform: nextion
+    page_id: 11
+    component_id: 3
+    id: bfree_run1
+    on_press:
+      then:
+        - delay: 3400ms
+        - switch.turn_on: free_running_mode_switch
+        - script.execute: start_manual
+        - lambda: |-
+            id(program_select).publish_state("None");
+            id(bfree_run).publish_state(false);
 
   - platform: nextion
     page_id: 15
@@ -4168,52 +4188,52 @@ binary_sensor:
             ESP_LOGI("Nextion", "INFO tab (bsettings) press");
             id(bsettings).publish_state(false);
 
-  - platform: nextion
-    page_id: 10
-    component_id: 1
-    id: m0_select_russia_ufa
-    on_press:
-      then:
-        - lambda: |-
-            id(map_select).publish_state("Russia, Ufa 3.4km");
-            id(m0_select_russia_ufa).publish_state(false);
+  # - platform: nextion
+  #   page_id: 10
+  #   component_id: 1
+  #   id: m0_select_russia_ufa
+  #   on_press:
+  #     then:
+  #       - lambda: |-
+  #           id(map_select).publish_state("Russia, Ufa 3.4km");
+  #           id(m0_select_russia_ufa).publish_state(false);
+
+  # - platform: nextion
+  #   page_id: 10
+  #   component_id: 2
+  #   id: m0_select_russia_ufa1
+  #   on_press:
+  #     then:
+  #       - lambda: |-
+  #           id(map_select).publish_state("Russia, Ufa Sipailovo 4.4km");
+  #           id(m0_select_russia_ufa1).publish_state(false);
+
+  # - platform: nextion
+  #   page_id: 10
+  #   component_id: 3
+  #   id: m0_select_russia_ufa2
+  #   on_press:
+  #     then:
+  #       - lambda: |-
+  #           id(map_select).publish_state("Russia, Ufa Kashkadan 1.7km");
+  #           id(m0_select_russia_ufa2).publish_state(false);
+
+
+  # - platform: nextion
+  #   page_id: 11
+  #   component_id: 1
+  #   id: map_start
+  #   on_press:
+  #     then:
+  #       - delay: 3400ms
+  #       - script.execute: start_manual
+  #       - lambda: |-
+  #           ESP_LOGI("Nextion", "INFO tab (map start) press"); 
+  #           id(map_start).publish_state(false);
 
   - platform: nextion
-    page_id: 10
+    page_id: 11
     component_id: 2
-    id: m0_select_russia_ufa1
-    on_press:
-      then:
-        - lambda: |-
-            id(map_select).publish_state("Russia, Ufa Sipailovo 4.4km");
-            id(m0_select_russia_ufa1).publish_state(false);
-
-  - platform: nextion
-    page_id: 10
-    component_id: 3
-    id: m0_select_russia_ufa2
-    on_press:
-      then:
-        - lambda: |-
-            id(map_select).publish_state("Russia, Ufa Kashkadan 1.7km");
-            id(m0_select_russia_ufa2).publish_state(false);
-
-
-  - platform: nextion
-    page_id: 11
-    component_id: 1
-    id: map_start
-    on_press:
-      then:
-        - delay: 3400ms
-        - script.execute: start_manual
-        - lambda: |-
-            ESP_LOGI("Nextion", "INFO tab (map start) press"); 
-            id(map_start).publish_state(false);
-
-  - platform: nextion
-    page_id: 11
-    component_id: 4
     id: map_start_hrzone
     on_press:
       then:
@@ -4291,6 +4311,11 @@ binary_sensor:
 
 # Текстовые сенсоры
 text_sensor:
+  - platform: version
+    id: ESPHomeVersion
+    name: "ESPHome version"
+    hide_timestamp: true
+
   - platform: template
     name: "Pulse monitor"
     id: connection_status
@@ -4427,6 +4452,10 @@ select:
       - "Russia, Ufa 3.4km"
       - "Russia, Ufa Sipailovo 4.4km"
       - "Russia, Ufa Kashkadan 1.7km"
+      - "Zwift Epic Run 6.2km"
+      - "Zwift 5K loop 5.0km"
+      - "Zwift Mountain Mash 5.9km"
+      - "Zwift Chili Pepper 8.0km"
     initial_option: "None"
     optimistic: true
     # on_value:
@@ -4926,42 +4955,6 @@ switch:
             id(display_nextion).send_command_printf("t0.bco=21162"); // Серый по умолчанию
           }
 
-
-
-
-  # - platform: nextion
-  #   name: "Free Running Mode"
-  #   id: free_running_mode_switch
-  #   component_name: btfree_run
-  #   on_turn_on:
-  #     - lambda: |-
-  #         // Сохраняем текущий режим управления, если он не Free Run
-  #         if (id(control_mode) != 1) {
-  #           id(previous_control_mode) = id(control_mode);
-  #         }
-  #         // Переключаемся в режим Free Run
-  #         id(control_mode) = 1;
-  #         id(free_running_active) = true;
-  #         ESP_LOGI("FreeRun", "Free Run включён, предыдущий режим: %d", id(previous_control_mode));
-  #         id(display_nextion).send_command_printf("speed.p_icon_mode.pic=58"); // иконка
-  #     - script.execute: free_running_mode
-  #   on_turn_off:
-  #     - lambda: |-
-  #         // Восстанавливаем предыдущий режим управления
-  #         id(control_mode) = id(previous_control_mode);
-  #         id(free_running_active) = false;
-  #         ESP_LOGI("FreeRun", "Free Run выключен, восстановлен режим: %d", id(control_mode));
-  #         // Если активна программа Pulse Zone, возвращаем управление по пульсу
-  #         if (id(control_mode) == 2) {
-  #           id(auto_mode) = true;
-  #           id(display_nextion).send_command_printf("speed.p_icon_mode.pic=59"); // иконка убрать
-  #           ESP_LOGI("FreeRun", "Возвращено управление по пульсу");
-  #         } else {
-  #           id(auto_mode) = false;
-  #           id(display_nextion).send_command_printf("speed.p_icon_mode.pic=62"); // иконка убрать
-  #           ESP_LOGI("FreeRun", "Возвращено ручное управление");
-  #         }
-
   - platform: nextion
     name: "Disp. auto on-off"
     id: sw_display_off
@@ -4973,25 +4966,6 @@ switch:
     on_turn_off:
       - lambda: |-
           id(display_nextion).send_command_printf("display.sw_display_off.val=0"); 
-
-
-
-  # # кнопка автояркость дисплей
-  # - platform: nextion
-  #   id: btautobr
-  #   name: "авто яркость"
-  #   component_name: settingsDisp.bt0
-  #   icon: mdi:brightness-6
-  #   on_turn_on:
-  #     - globals.set:
-  #         id: btautobr_state
-  #         value: !lambda 'return id(btautobr).state;'
-  #   on_turn_off:
-  #     - globals.set:
-  #         id: btautobr_state
-  #         value: !lambda 'return id(btautobr).state;'
-
-
 
 
   - platform: template
@@ -5029,30 +5003,14 @@ switch:
           }
 
   # ***************** display *****************
-# display:
-#   - platform: nextion
-#     uart_id: uart_0
-#     id: display_nextion
-#     update_interval: 1s
-#     command_spacing: 30ms         # Чуть быстрее, чем 50ms, но всё ещё безопасно
-#     max_queue_size: 50            # Увеличиваем очередь — до 50 команд
-#     max_commands_per_loop: 10     # Чтобы не грузить ESP при скачках
-#     on_buffer_overflow:
-#       then:
-#         - logger.log: "⚠️ Переполнение очереди Nextion!"
-#     lambda: |-
-#       if (id(speed).state) {
-#         id(display_nextion).set_component_text("t5", id(program_status).state.c_str());
-#       }
-
 display:
   - platform: nextion
     uart_id: uart_0
     id: display_nextion
     update_interval: 1s
-    #tft_url: http://192.168.1.189:8080/my_screen.tft
+    tft_url: http://192.168.1.189:8123/local/nextion_treadmill_4.3_ips_800x480.tft
     # command_spacing: 15ms        # Быстрее, но безопасно
-    # max_queue_size: 50           # Очередь побольше
+    # max_queue_size: 50           # очередь — до 50 команд
     # max_commands_per_loop: 40    # Обрабатываем всё за раз
     # on_buffer_overflow:
     #   then:
