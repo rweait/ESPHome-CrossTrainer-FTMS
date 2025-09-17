@@ -52,9 +52,10 @@ esphome:
         #     id(uart_0).set_baud_rate(115200);
         #     id(uart_0).load_settings();
         #     ESP_LOGI("UART", "Скорость UART изменена на: 115200");
-            
+
+
 external_components:
-  - source: github://mrtoy-me/esphome-components-test@main
+  - source: github://mrtoy-me/esphome-vl53l1x@main
   #- source: github://samsonovss/esphome-vl53l1x@main
     components: [ vl53l1x ]
     refresh: 0s
@@ -62,20 +63,29 @@ external_components:
 
 esp32:
   board: esp32-s3-devkitc-1
+  flash_size: 16MB
+  cpu_frequency: 240MHz
   framework:
     type: esp-idf
     sdkconfig_options:
-      COMPILER_OPTIMIZATION_SIZE: y
-      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
-      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
-      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
-      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: y
-      CONFIG_SPIRAM_RODATA: y
-      CONFIG_SPIRAM_MODE_OCT: y  
-      CONFIG_LV_MEM_CUSTOM: y 
-      CONFIG_LV_MEMCPY_MEMSET_STD: y 
-      CONFIG_LV_ATTRIBUTE_FAST_MEM: y 
-  flash_size: 16MB
+      # 🔹 Оптимизация под скорость
+      COMPILER_OPTIMIZATION_PERF: "y"                 # -O2 для максимальной производительности
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"        # Макс. частота CPU
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"             # Увеличенный D-кэш
+      CONFIG_ESP32S3_DATA_CACHE_LINE_32B: "y"         # 32B линия кэша — быстрее без графики
+
+      # 🔹 PSRAM (только под данные)
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "n"           # Код в IRAM/Flash — быстрее
+      CONFIG_SPIRAM_RODATA: "n"                        # Константы в DRAM для скорости
+      CONFIG_SPIRAM_MODE_OCT: "y"                      # Octal PSRAM
+      CONFIG_SPIRAM_USE_MALLOC: "y"                    # malloc() может выделять в PSRAM
+      CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY: "y"   # Разрешить стек в PSRAM
+      CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY: "y" # Разрешить глобальные буферы в PSRAM
+
+      # ❌ LVGL — убрано
+      CONFIG_LV_MEM_CUSTOM: "n"
+      CONFIG_LV_MEMCPY_MEMSET_STD: "n"
+      CONFIG_LV_ATTRIBUTE_FAST_MEM: "n"
 
 psram:
   mode: octal
@@ -105,7 +115,7 @@ mdns:
 # Enable logging
 logger:
   level: INFO
-  baud_rate: 9600
+  baud_rate: 0
 
 # Enable Home Assistant API
 api:
@@ -905,8 +915,8 @@ script:
       - lambda: |-
           id(motor_running) = true;
           id(manual_stop) = false;
-          id(target_speed) = 10;
-          id(target_speed_goal) = 10;
+          id(target_speed) = 20; //начальная скорость при включении программы
+          id(target_speed_goal) = 20;
           id(set_speed).publish_state(id(target_speed) / 10.0);
 
           // Устанавливаем control_mode и иконку в зависимости от программы
@@ -2861,10 +2871,23 @@ one_wire:
   - platform: gpio
     pin: 21
 
-
+debug:
+  update_interval: 5s  # как часто опрашивать
 
 # Сенсоры
 sensor:
+  - platform: debug
+    free:
+      name: "Heap Free"
+    block:
+      name: "Heap Max Block"
+    loop_time:
+      name: "Loop Time"
+    psram:
+      name: "Free PSRAM"
+    cpu_frequency:
+      name: "CPU Frequency"
+
 
 # Сенсор для для выбора карты
   - platform: nextion
@@ -2892,6 +2915,8 @@ sensor:
             } else if (x == 7) {
               id(map_select).publish_state("Zwift Chili Pepper 8.0km");
             }
+
+
 # Сенсор для ползунка на экране яркость
   - platform: nextion
     id: nextion_slider
@@ -2903,60 +2928,6 @@ sensor:
       then:
         - lambda: |-
             id(brightness_level) = (int)x;
-
-  # - platform: vl53l0x
-  #   distance:
-  #     entity_category: diagnostic
-  #     name: My Raw Distance
-  #     id: my_raw_distance
-  #     unit_of_measurement: "mm" 
-  #   # range_status:
-  #   #   name: My Range Status
-  #   #   id: my_range_status
-  #   update_interval: 1s
-
-
-  # - platform: vl53l0x
-  #   id: my_distance
-  #   address: 0x29
-  #   name: "My Distance"
-  #   long_range: false
-  #   unit_of_measurement: "cm"
-  #   state_class: "measurement"
-  #   device_class: "distance"
-  #   timeout: 200us
-  #   update_interval: 500ms
-  #   accuracy_decimals: 0
-  #   # lambda: |-
-  #   #   return id(my_raw_distance).state / 10.0;
-  #   filters:
-  #     - delta: 1.0
-  #   #update_interval: 1s
-  #   on_value:
-  #     then:
-  #       - lambda: |-
-  #           float distance = x;
-  #           int position_value = (int)distance;
-
-  #           // Обновление дисплея Nextion
-  #           id(display_nextion).send_command_printf("position=%d", position_value);
-  #           id(display_nextion).send_command_printf("caldistspeed.ndist.val=%d", position_value);
-
-  #           // Логика калибровки
-  #           if (id(calibration_active)) {
-  #             // Проверяем, что значение в разумном диапазоне (0–150 см)
-  #             if (distance > 0.0 && distance < 150.0) {
-  #               if (distance < id(calibration_min_distance)) {
-  #                 id(calibration_min_distance) = distance;
-  #                 ESP_LOGD("Calibration", "Новое минимальное расстояние: %.1f см", distance);
-  #               }
-  #               if (distance > id(calibration_max_distance)) {
-  #                 id(calibration_max_distance) = distance;
-  #                 ESP_LOGD("Calibration", "Новое максимальное расстояние: %.1f см", distance);
-  #               }
-  #             }
-  #           }
-
 
   - platform: vl53l1x
     distance_mode: long
@@ -3009,7 +2980,6 @@ sensor:
             }
 
 
-
 #температура мотора
   - platform: dallas_temp
     address: 0xdf3ce0f64959df28
@@ -3022,8 +2992,10 @@ sensor:
         - lambda: |-
             int tempmotor = (int)id(temp).state;
             //if (id(speed).state) {
-            id(display_nextion).send_command_printf("speed.ntemp.val=%d", tempmotor);
-            id(display_nextion).send_command_printf("motor.ntemp.val=%d", tempmotor);
+            //id(display_nextion).send_command_printf("speed.ntemp.val=%d", tempmotor);
+            //id(display_nextion).send_command_printf("motor.ntemp.val=%d", tempmotor);
+            id(display_nextion).set_component_value("speed.ntemp", tempmotor);
+            id(display_nextion).set_component_value("motor.ntemp", tempmotor);
             //}
 
   - platform: template
@@ -4315,6 +4287,12 @@ text_sensor:
     id: ESPHomeVersion
     name: "ESPHome version"
     hide_timestamp: true
+
+  - platform: debug
+    device:
+      name: "Device Info"
+    reset_reason:
+      name: "Reset Reason"
 
   - platform: template
     name: "Pulse monitor"
