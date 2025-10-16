@@ -48,10 +48,10 @@ esphome:
         #     ESP_LOGI("UART", "Установлена начальная скорость UART: 9600");
         # - delay: 2s  # Ждём 2 секунды для стабилизации дисплея
         # - lambda: |-
-        #     // Переключаем скорость UART на 115200
-        #     id(uart_0).set_baud_rate(115200);
+        #     // Переключаем скорость UART на 230400
+        #     id(uart_0).set_baud_rate(230400);
         #     id(uart_0).load_settings();
-        #     ESP_LOGI("UART", "Скорость UART изменена на: 115200");
+        #     ESP_LOGI("UART", "Скорость UART изменена на: 230400");
 
 
 external_components:
@@ -91,8 +91,9 @@ psram:
   mode: octal
   speed: 80MHz
 
-mdns:
-  disabled: false
+
+safe_mode:
+  num_attempts: 1
 
 # web_server:
 #   port: 80
@@ -115,7 +116,7 @@ mdns:
 # Enable logging
 logger:
   level: INFO
-  baud_rate: 0
+  baud_rate: 9600
 
 # Enable Home Assistant API
 api:
@@ -126,9 +127,14 @@ ota:
   - platform: esphome
     password: "5283ff3a339cbd8f5c5eba074ad730cb"
 
+# safe_mode:
+#   num_attempts: 1
+
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  power_save_mode: none  # Отключает энергосбережение
+  fast_connect: true     # Быстрое подключение
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
@@ -263,15 +269,16 @@ uart:
                     incline = incline * 10 + (command_value[i] - '0');
                   }
                   if (valid) {
+                    if (incline <= 1) incline = 0;  // Игнорируем 0.1% и устанавливаем 0
                     id(treadmill_incline_feedback) = incline;
-                    ESP_LOGD("UART", "Наклон обновлен: %d", incline);
+                    ESP_LOGI("UART", "Наклон обновлен: %d", incline);
                   } else {
                     ESP_LOGW("UART", "Некорректный наклон: %s", command_value);
                   }
                 }
                 // Другие команды просто логируются
                 else {
-                  ESP_LOGD("UART", "Неизвестная команда обработана: %s=%s", command_name, command_value);
+                  ESP_LOGI("UART", "Неизвестная команда обработана: %s=%s", command_name, command_value);
                 }
               };
 
@@ -328,7 +335,7 @@ uart:
 #                 std::string spd_str = message.substr(spd_pos + 8, 3);
 #                 int speed = std::stoi(spd_str);
 #                 id(treadmill_speed_feedback) = speed;
-#                 ESP_LOGD("UART", "Скорость обратной связи обновлена: %d", speed);
+#                 ESP_LOGI("UART", "Скорость обратной связи обновлена: %d", speed);
 #               }
 
 #               // Парсинг наклона [SETINC:XXX]
@@ -337,7 +344,7 @@ uart:
 #                 std::string inc_str = message.substr(inc_pos + 8, 3);
 #                 int incline = std::stoi(inc_str);
 #                 id(treadmill_incline_feedback) = incline;
-#                 ESP_LOGD("UART", "Наклон обратной связи обновлен: %d", incline);
+#                 ESP_LOGI("UART", "Наклон обратной связи обновлен: %d", incline);
 #               }
 #             }
 
@@ -1164,7 +1171,7 @@ script:
     then:
       - lambda: |-
           if (id(control_mode) == 1) {
-            ESP_LOGD("CoolDown", "Free Run активен, регулировка скорости по пульсу приостановлена");
+            ESP_LOGI("CoolDown", "Free Run активен, регулировка скорости по пульсу приостановлена");
             return;
           }
           float heart_rate = id(heart_rate_sensor).state;
@@ -1242,7 +1249,7 @@ script:
     then:
       - lambda: |-
           if (id(control_mode) == 1) {
-            ESP_LOGD("IntervalTraining", "Free Run активен, регулировка скорости по пульсу приостановлена");
+            ESP_LOGI("IntervalTraining", "Free Run активен, регулировка скорости по пульсу приостановлена");
             return;
           }
           id(interval_time)++;
@@ -1292,7 +1299,7 @@ script:
     then:
       - lambda: |-
           if (id(control_mode) == 1) {
-            ESP_LOGD("SmoothSpeed", "Free Run активен, smooth_speed не выполняется");
+            ESP_LOGI("SmoothSpeed", "Free Run активен, smooth_speed не выполняется");
             return;
           }
           ESP_LOGI("SmoothSpeed", "target_speed=%d, target_speed_goal=%d", id(target_speed), id(target_speed_goal));
@@ -1328,7 +1335,7 @@ script:
     then:
       - lambda: |-
           if (id(control_mode) == 1) {
-            ESP_LOGD("AdjustSpeed", "Free Run активен, регулировка скорости по пульсу приостановлена");
+            ESP_LOGI("AdjustSpeed", "Free Run активен, регулировка скорости по пульсу приостановлена");
             return;
           }
           static int pulse_out_of_zone_count = 0;
@@ -1377,7 +1384,7 @@ script:
       - lambda: |-
           // Пропускаем управление скоростью, если активен Free Run
           if (id(control_mode) == 1) {
-            ESP_LOGD("Program", "Free Run активен, управление по пульсу приостановлено");
+            ESP_LOGI("Program", "Free Run активен, управление по пульсу приостановлено");
           } else {
             // Устанавливаем auto_mode для программ, зависящих от пульса
             std::string program = id(program_select).state;
@@ -1601,7 +1608,7 @@ script:
       - lambda: |-
           // Проверка, активен ли мотор
           if (!id(motor_running)) {
-            ESP_LOGD("SafeStop", "Мотор не активен, безопасная остановка не требуется");
+            ESP_LOGI("SafeStop", "Мотор не активен, безопасная остановка не требуется");
             return;
           }
 
@@ -1635,7 +1642,7 @@ script:
 
           ESP_LOGD("SafeStop", "Бегун в безопасной зоне: %.0f см", distance_cm);
 
-          
+
 # Скрипт отправляет данные о скорости, наклоне, дистанции, времени и пульсе беговой дорожки через BLE.
   - id: send_treadmill_data
     then:
@@ -1968,6 +1975,10 @@ script:
             {"Zwift 5K loop 5.0km", incline_profile_5K_loop_5_0km, 67},
             {"Zwift Mountain Mash 5.9km", incline_profile_Mountain_Mash_5_9km, 106},
             {"Zwift Chili Pepper 8.0km", incline_profile_Chili_Pepper_8_0km, 156},
+            {"Zwift Hilly Route Reverse Run 9.2km", incline_profile_Hilly_Route_Reverse_Run_9_2km, 225},
+            {"Zwift Ocean Blvd 11.2km", incline_profile_11_1_Ocean_Blvd_11_2km, 121},
+            {"Zwift Beach Island Loop 12.8km", incline_profile_Beach_Island_Loop_12_8km, 125},
+            {"Zwift Jon’s Route 12.6km", incline_profile_Jons_Route_12_6km, 135},
           };
           const int map_count = sizeof(maps) / sizeof(maps[0]);
 
@@ -2209,7 +2220,7 @@ script:
           }
 
           // Логирование текущих параметров
-          ESP_LOGD("FreeRunning", "Расстояние: %.0f см, Зоны: сильное ускорение <%.0f, ускорение <%.0f, замедление >%.0f, сильное замедление >%.0f",
+          ESP_LOGI("FreeRunning", "Расстояние: %.0f см, Зоны: сильное ускорение <%.0f, ускорение <%.0f, замедление >%.0f, сильное замедление >%.0f",
                    distance, accel_strong, accel, decel, decel_strong);
 
 
@@ -2231,7 +2242,7 @@ script:
             id(fast_update) = (distance > decel_strong); // Быстрое замедление
           } else {
             id(fast_update) = false;
-            ESP_LOGD("FreeRunning", "Бегун в зоне комфорта (%.0f см), скорость не изменяется", distance);
+            ESP_LOGI("FreeRunning", "Бегун в зоне комфорта (%.0f см), скорость не изменяется", distance);
           }
 
           // Ограничение скорости
@@ -2255,7 +2266,7 @@ script:
             id(uart_bus)->write_str(speed_buffer);
             ESP_LOGI("FreeRunning", "Команда скорости отправлена: %s", speed_buffer);
           } else {
-            ESP_LOGD("FreeRunning", "Скорость не изменилась: %.1f км/ч", new_speed_int / 10.0);
+            ESP_LOGI("FreeRunning", "Скорость не изменилась: %.1f км/ч", new_speed_int / 10.0);
           }
 
 
@@ -2276,7 +2287,7 @@ script:
           id(set_speed).publish_state(4.0);      // Устанавливаем скорость в интерфейсе
           id(program_status).publish_state("Калибровка: Бегите в передней зоне");
           id(display_nextion).set_component_text("t_info_calib", "    Step 1:\\rFront zone\\r      30s");
-          id(display_nextion).send_command_printf("p_zone.pic=76"); // Картинка зоны 
+          id(display_nextion).send_command_printf("p_zone.pic=74"); // Картинка зоны 
           ESP_LOGI("Calibration", "Калибровка начата, скорость установлена на 4 км/ч");
 
           // Fitness Machine Status: Started or Resumed (0x04)
@@ -2298,7 +2309,7 @@ script:
       - lambda: |- 
           id(program_status).publish_state("Калибровка: Бегите в задней зоне");
           id(display_nextion).set_component_text("t_info_calib", "   Step 2:\\rRear zone\\r     30s");
-          id(display_nextion).send_command_printf("p_zone.pic=77"); // Картинка зоны 
+          id(display_nextion).send_command_printf("p_zone.pic=75"); // Картинка зоны 
           ESP_LOGI("Calibration", "Переключение на заднюю зону");
       - delay: 30s  # Следующие 30 секунд — бег в задней зоне
       - lambda: |- 
@@ -2379,7 +2390,8 @@ script:
 
               id(program_status).publish_state("Калибровка завершена");
               id(display_nextion).set_component_text("t_info_calib", " Calibration\\r  Complete");
-              id(display_nextion).send_command_printf("p_zone.pic=75"); // Картинка зоны 
+              id(display_nextion).send_command_printf("p_zone.pic=73"); // Картинка зоны 
+              ESP_LOGI("Nextion", "Sending command for p_zone.pic=73");
 
               id(display_nextion).set_component_text_printf("caldistspeed.t_speed_up", "%d", (int)id(accel_cm).state);
               id(display_nextion).set_component_text_printf("caldistspeed.t_speed_down", "%d", (int)id(decel_cm).state);
@@ -2451,11 +2463,11 @@ interval:
     then:
       - if:
           condition:
-            lambda: 'return id(motor_running);'
+            lambda: 'return id(safe_mode_switch).state && id(motor_running);'
           then:
             - script.execute: safe_stop
 
-
+# Управление скоростью
   - interval: 800ms
     then:
       - if:
@@ -2478,10 +2490,9 @@ interval:
                 //ESP_LOGI("Interval", "Interval skipped: motor_running=%d, target_speed=%d, warm_up_active=%d, remaining_cool_down_time=%d, auto_mode=%d",
                          //id(motor_running), id(target_speed), id(warm_up_active), id(remaining_cool_down_time), id(auto_mode));
 
-
+# Управление наклоном
   - interval: 700ms
     then:
-      # Управление наклоном
       - lambda: |-
           char incline_buffer[13];
           // Если двигатель работает, отправляем текущую цель наклона
@@ -2660,76 +2671,78 @@ interval:
           }
 
 # Интервал для периодического обновления heart_rate_sensor Компонент number для эмуляции пульса
-  - interval: 1s
-    then:
-      - if:
-          condition:
-            lambda: 'return id(emulate_ble_connected) && id(test_heart_rate).state >= 60 && id(test_heart_rate).state <= 200;'
-          then:
-            - sensor.template.publish:
-                id: heart_rate_sensor
-                state: !lambda 'return id(test_heart_rate).state;'
-            - lambda: |-
-                float heart_rate = id(test_heart_rate).state;
-                ESP_LOGD("TEST", "Heart Rate updated to: %.0f bpm", heart_rate);
-                // Повторяем логику зон и дисплея для синхронизации
-                float max_hr = id(max_heart_rate);
-                float min_zone_1 = max_hr * 0.50;
-                float max_zone_1 = max_hr * 0.60;
-                float min_zone_2 = max_hr * 0.60;
-                float max_zone_2 = max_hr * 0.70;
-                float min_zone_3 = max_hr * 0.70;
-                float max_zone_3 = max_hr * 0.80;
-                float min_zone_4 = max_hr * 0.80;
-                float max_zone_4 = max_hr * 0.90;
-                float min_zone_5 = max_hr * 0.90;
-                float max_zone_5 = max_hr;
+  # - interval: 1s
+  #   then:
+  #     - if:
+  #         condition:
+  #           lambda: 'return id(emulate_ble_connected) && id(test_heart_rate).state >= 60 && id(test_heart_rate).state <= 200;'
+  #         then:
+  #           - sensor.template.publish:
+  #               id: heart_rate_sensor
+  #               state: !lambda 'return id(test_heart_rate).state;'
+  #           - lambda: |-
+  #               float heart_rate = id(test_heart_rate).state;
+  #               ESP_LOGI("TEST", "Heart Rate updated to: %.0f bpm", heart_rate);
+  #               // Повторяем логику зон и дисплея для синхронизации
+  #               float max_hr = id(max_heart_rate);
+  #               float min_zone_1 = max_hr * 0.50;
+  #               float max_zone_1 = max_hr * 0.60;
+  #               float min_zone_2 = max_hr * 0.60;
+  #               float max_zone_2 = max_hr * 0.70;
+  #               float min_zone_3 = max_hr * 0.70;
+  #               float max_zone_3 = max_hr * 0.80;
+  #               float min_zone_4 = max_hr * 0.80;
+  #               float max_zone_4 = max_hr * 0.90;
+  #               float min_zone_5 = max_hr * 0.90;
+  #               float max_zone_5 = max_hr;
 
-                int heart_rate_zone = 0;
-                if (heart_rate < min_zone_1) {
-                  heart_rate_zone = 0;
-                } else if (heart_rate < max_zone_1) {
-                  heart_rate_zone = 1;
-                } else if (heart_rate < max_zone_2) {
-                  heart_rate_zone = 2;
-                } else if (heart_rate < max_zone_3) {
-                  heart_rate_zone = 3;
-                } else if (heart_rate < max_zone_4) {
-                  heart_rate_zone = 4;
-                } else {
-                  heart_rate_zone = 5;
-                }
-                id(current_zone) = heart_rate_zone;
-                ESP_LOGD("TEST", "Heart Rate: %.0f, Current Zone: %d", heart_rate, heart_rate_zone);
+  #               int heart_rate_zone = 0;
+  #               if (heart_rate < min_zone_1) {
+  #                 heart_rate_zone = 0;
+  #               } else if (heart_rate < max_zone_1) {
+  #                 heart_rate_zone = 1;
+  #               } else if (heart_rate < max_zone_2) {
+  #                 heart_rate_zone = 2;
+  #               } else if (heart_rate < max_zone_3) {
+  #                 heart_rate_zone = 3;
+  #               } else if (heart_rate < max_zone_4) {
+  #                 heart_rate_zone = 4;
+  #               } else {
+  #                 heart_rate_zone = 5;
+  #               }
+  #               id(current_zone) = heart_rate_zone;
+  #               ESP_LOGI("TEST", "Heart Rate: %.0f, Current Zone: %d", heart_rate, heart_rate_zone);
 
-                if (id(speed).state) {
-                  char heart_str[10];
-                  sprintf(heart_str, "%.0f", heart_rate);
-                  id(display_nextion).send_command_printf("t0.txt=\"%s\"", heart_str);
-
-                  uint16_t picture_id = 7;
-                  uint16_t t0_bco = 21162;
-                  if (heart_rate < min_zone_1) {
-                    picture_id = 7;
-                  } else if (heart_rate < max_zone_1) {
-                    picture_id = 2;
-                    t0_bco = 15487;
-                  } else if (heart_rate < max_zone_2) {
-                    picture_id = 3;
-                    t0_bco = 11744;
-                  } else if (heart_rate < max_zone_3) {
-                    picture_id = 4;
-                    t0_bco = 64992;
-                  } else if (heart_rate < max_zone_4) {
-                    picture_id = 5;
-                    t0_bco = 64294;
-                  } else {
-                    picture_id = 6;
-                    t0_bco = 64040;
-                  }
-                  id(display_nextion).send_command_printf("p0.pic=%d", picture_id);
-                  id(display_nextion).send_command_printf("t0.bco=%d", t0_bco);
-                }
+  #               if (id(speed).state) {
+  #                 char heart_str[10];
+  #                 sprintf(heart_str, "%.0f", heart_rate);
+  #                 id(display_nextion).send_command_printf("t0.txt=\"%s\"", heart_str);
+  #                 ESP_LOGI("Nextion", "Sending command for t0.txt");
+  #                 uint16_t picture_id = 7;
+  #                 uint16_t t0_bco = 21162;
+  #                 if (heart_rate < min_zone_1) {
+  #                   picture_id = 7;
+  #                 } else if (heart_rate < max_zone_1) {
+  #                   picture_id = 2;
+  #                   t0_bco = 15487;
+  #                 } else if (heart_rate < max_zone_2) {
+  #                   picture_id = 3;
+  #                   t0_bco = 11744;
+  #                 } else if (heart_rate < max_zone_3) {
+  #                   picture_id = 4;
+  #                   t0_bco = 64992;
+  #                 } else if (heart_rate < max_zone_4) {
+  #                   picture_id = 5;
+  #                   t0_bco = 64294;
+  #                 } else {
+  #                   picture_id = 6;
+  #                   t0_bco = 64040;
+  #                 }
+  #                 id(display_nextion).send_command_printf("p0.pic=%d", picture_id);
+  #                 ESP_LOGI("Nextion", "Sending command for p0.pic");
+  #                 id(display_nextion).send_command_printf("t0.bco=%d", t0_bco);
+  #                 ESP_LOGI("Nextion", "Sending command for t0.bco");
+  #               }
 
 # интервал для изминения наклона для выбранной карты
   - interval: 5s
@@ -2742,7 +2755,6 @@ interval:
 
 # Кнопки и селекторы
 button:
-
   - platform: template
     id: update_nextion_button
     name: Update Nextion
@@ -2914,6 +2926,14 @@ sensor:
               id(map_select).publish_state("Zwift Mountain Mash 5.9km");
             } else if (x == 7) {
               id(map_select).publish_state("Zwift Chili Pepper 8.0km");
+            } else if (x == 8) {
+              id(map_select).publish_state("Zwift Hilly Route Reverse Run 9.2km");
+            } else if (x == 9) {
+              id(map_select).publish_state("Zwift Ocean Blvd 11.2km");
+            } else if (x == 10) {
+              id(map_select).publish_state("Zwift Beach Island Loop 12.8km");
+            } else if (x == 11) {
+              id(map_select).publish_state("Zwift Jon’s Route 12.6km");
             }
 
 
@@ -2962,19 +2982,22 @@ sensor:
 
             // Обновление дисплея Nextion
             id(display_nextion).send_command_printf("position=%d", position_value);
-            id(display_nextion).send_command_printf("caldistspeed.ndist.val=%d", position_value);
-
+            //ESP_LOGI("Nextion", "Sending command for position");
+            //if (id(caldistspeed).state) {
+              //id(display_nextion).send_command_printf("caldistspeed.ndist.val=%d", position_value);
+              //ESP_LOGI("Nextion", "Sending command for caldistspeed.ndist.val");
+            //}
             // Логика калибровки
             if (id(calibration_active)) {
               // Проверяем, что значение в разумном диапазоне (0–150 см)
               if (distance > 0.0 && distance < 150.0) {
                 if (distance < id(calibration_min_distance)) {
                   id(calibration_min_distance) = distance;
-                  ESP_LOGD("Calibration", "Новое минимальное расстояние: %.1f см", distance);
+                  ESP_LOGI("Calibration", "Новое минимальное расстояние: %.1f см", distance);
                 }
                 if (distance > id(calibration_max_distance)) {
                   id(calibration_max_distance) = distance;
-                  ESP_LOGD("Calibration", "Новое максимальное расстояние: %.1f см", distance);
+                  ESP_LOGI("Calibration", "Новое максимальное расстояние: %.1f см", distance);
                 }
               }
             }
@@ -2986,17 +3009,32 @@ sensor:
     name: "Motor"
     id: temp
     force_update: true
-    update_interval: 30s
+    update_interval: 10s
     on_value:
       then:
         - lambda: |-
-            int tempmotor = (int)id(temp).state;
-            //if (id(speed).state) {
-            //id(display_nextion).send_command_printf("speed.ntemp.val=%d", tempmotor);
-            //id(display_nextion).send_command_printf("motor.ntemp.val=%d", tempmotor);
-            id(display_nextion).set_component_value("speed.ntemp", tempmotor);
-            id(display_nextion).set_component_value("motor.ntemp", tempmotor);
-            //}
+            float temp_value = id(temp).state;
+            if (!isnan(temp_value)) {
+              int tempmotor = (int)temp_value;
+              if (id(speed).state) {
+                id(display_nextion).set_component_value("speed.ntemp", tempmotor); 
+                ESP_LOGI("Nextion", "Setting value for speed.ntemp");
+              }
+              if (id(motor_page).state) {
+                id(display_nextion).set_component_value("motor.ntemp", tempmotor);
+                ESP_LOGI("Nextion", "Setting value for motor.ntemp");
+              }
+            } else {
+              ESP_LOGW("Temp", "NaN temperature, skipping update");
+            }
+    # on_value:
+    #   then:
+    #     - lambda: |-
+    #         int tempmotor = (int)id(temp).state;
+    #         //id(display_nextion).set_component_value("speed.ntemp", tempmotor);
+    #         //id(display_nextion).set_component_value("motor.ntemp", tempmotor);
+    #         ESP_LOGI("Nextion", "Sending command for ntemp");
+    #         //}
 
   - platform: template
     name: "Calories Burned"
@@ -3005,53 +3043,57 @@ sensor:
     accuracy_decimals: 0
     update_interval: 1s
     lambda: |-
-      // Базовые данные
-      float weight = id(weight_kg).state;
-      int age = id(age_number).state;
-      bool is_male = (strcmp(id(gender_select)->state.c_str(), "Male") == 0);
-      float max_hr = (is_male) ? (214 - 0.8 * age) : (209 - 0.7 * age);
+      if (id(motor_running)) {
+        // Базовые данные
+        float weight = id(weight_kg).state;
+        int age = id(age_number).state;
+        bool is_male = (strcmp(id(gender_select)->state.c_str(), "Male") == 0);
+        float max_hr = (is_male) ? (214 - 0.8 * age) : (209 - 0.7 * age);
 
-      // Средние значения
-      float time_min = id(total_time_min);
-      float avg_speed = (id(speed_count) > 0) ? (id(total_speed_sum) / id(speed_count)) : 0;
-      float avg_incline = (id(incline_count) > 0) ? (id(total_incline_sum) / id(incline_count)) : 0;
-      float avg_heart_rate = (id(heart_rate_count) > 0) ? (id(total_heart_rate_sum) / id(heart_rate_count)) : 0;
+        // Средние значения
+        float time_min = id(total_time_min);
+        float avg_speed = (id(speed_count) > 0) ? (id(total_speed_sum) / id(speed_count)) : 0;
+        float avg_incline = (id(incline_count) > 0) ? (id(total_incline_sum) / id(incline_count)) : 0;
+        float avg_heart_rate = (id(heart_rate_count) > 0) ? (id(total_heart_rate_sum) / id(heart_rate_count)) : 0;
 
-      // Пересчет наклона беговой дорожки в реальный наклон
-      float real_incline = avg_incline / 3.0f;  // 15% на беговой дорожке = 5% реального наклона
+        // Пересчет наклона беговой дорожки в реальный наклон
+        float real_incline = avg_incline / 3.0f;  // 15% на беговой дорожке = 5% реального наклона
 
-      // Пересчет скорости в м/мин и уклона в доли
-      float speed_m_per_min = avg_speed * 1000.0f / 60.0f;  // км/ч → м/мин
-      float grade = real_incline / 100.0f;                 // Реальный наклон % → доли
+        // Пересчет скорости в м/мин и уклона в доли
+        float speed_m_per_min = avg_speed * 1000.0f / 60.0f;  // км/ч → м/мин
+        float grade = real_incline / 100.0f;                 // Реальный наклон % → доли
 
-      // Уравнение ACSM для VO₂ (мл/кг/мин)
-      float vo2 = 0.1f * speed_m_per_min
-                 + 1.8f * speed_m_per_min * grade
-                 + 3.5f;
+        // Уравнение ACSM для VO₂ (мл/кг/мин)
+        float vo2 = 0.1f * speed_m_per_min
+                  + 1.8f * speed_m_per_min * grade
+                  + 3.5f;
 
-      // Перевод VO₂ в MET
-      float met = vo2 / 3.5f;
+        // Перевод VO₂ в MET
+        float met = vo2 / 3.5f;
 
-      // Коррекция по пульсу (небольшая, до 10%)
-      float hr_ratio = avg_heart_rate / max_hr;
-      if (hr_ratio > 0.7f) {
-        float hr_factor = 1.0f + (hr_ratio - 0.7f) * 0.2f; // Увеличение до 10% при 90% пульса
-        if (hr_factor > 1.1f) hr_factor = 1.1f; // Ограничение на 10%
-        met *= hr_factor;
+        // Коррекция по пульсу (небольшая, до 10%)
+        float hr_ratio = avg_heart_rate / max_hr;
+        if (hr_ratio > 0.7f) {
+          float hr_factor = 1.0f + (hr_ratio - 0.7f) * 0.2f; // Увеличение до 10% при 90% пульса
+          if (hr_factor > 1.1f) hr_factor = 1.1f; // Ограничение на 10%
+          met *= hr_factor;
+        }
+
+        // Расчет калорий
+        float calories_per_hour = met * weight;
+        float calories = (calories_per_hour * time_min) / 60.0f;
+
+        // Ограничиваем минимальное значение
+        if (calories < 0) calories = 0;
+
+        // Логирование
+        ESP_LOGD("Calories", "VO₂: %.2f ml/kg/min, MET: %.2f, Weight: %.1f kg, Time: %.2f min, Avg Speed: %.2f km/h, Avg Incline (Treadmill): %.2f %, Real Incline: %.2f %, Avg HR: %.0f bpm, Calories: %.0f kcal",
+                vo2, met, weight, time_min, avg_speed, avg_incline, real_incline, avg_heart_rate, calories);
+
+        return calories;
+      } else {
+        return id(total_calories).state;  // Сохраняем предыдущее значение
       }
-
-      // Расчет калорий
-      float calories_per_hour = met * weight;
-      float calories = (calories_per_hour * time_min) / 60.0f;
-
-      // Ограничиваем минимальное значение
-      if (calories < 0) calories = 0;
-
-      // Логирование
-      ESP_LOGD("Calories", "VO₂: %.2f ml/kg/min, MET: %.2f, Weight: %.1f kg, Time: %.2f min, Avg Speed: %.2f km/h, Avg Incline (Treadmill): %.2f %, Real Incline: %.2f %, Avg HR: %.0f bpm, Calories: %.0f kcal",
-               vo2, met, weight, time_min, avg_speed, avg_incline, real_incline, avg_heart_rate, calories);
-
-      return calories;
 
   # Сенсоры для среднего и максимального пульса
   - platform: template
@@ -3081,8 +3123,9 @@ sensor:
         - lambda: |-
             int new_age = x; // Значение от number_sensor
             if (new_age >= 16 && new_age <= 100) {
-              id(age_number).publish_state(new_age); // Исправлено
-              ESP_LOGD("Settings", "Age updated to: %d", new_age);
+              id(age_number).make_call().set_value(new_age).perform();
+              //id(age_number).publish_state(new_age); 
+              ESP_LOGI("Settings", "Age updated to: %d", new_age);
               //id(update_heart_rate_zones).execute(); // Обновляем зоны пульса
             } else {
               ESP_LOGW("Settings", "Invalid age value: %d", new_age);
@@ -3100,8 +3143,9 @@ sensor:
         - lambda: |-
             int new_weight = x; // Значение от Nextion
             if (new_weight >= 40 && new_weight <= 100) {
-              id(weight_kg).publish_state(new_weight);
-              ESP_LOGD("Settings", "Weight updated to: %d kg", new_weight);
+              id(weight_kg).make_call().set_value(new_weight).perform();
+              //id(weight_kg).publish_state(new_weight);
+              ESP_LOGI("Settings", "Weight updated to: %d kg", new_weight);
             } else {
               ESP_LOGW("Settings", "Invalid weight value: %d kg", new_weight);
             }
@@ -3118,8 +3162,9 @@ sensor:
         - lambda: |-
             int new_time = x; // Значение от number_sensor
             if (new_time >= 1 && new_time <= 999) {
-              id(set_run_time).publish_state(new_time); // Исправлено
-              ESP_LOGD("Settings", "Age updated to: %d", new_time);
+              //id(set_run_time).publish_state(new_time);
+              id(set_run_time).make_call().set_value(new_time).perform();
+              ESP_LOGI("Settings", "Age updated to: %d", new_time);
               //id(update_heart_rate_zones).execute(); // Обновляем зоны пульса
             } else {
               ESP_LOGW("Settings", "Invalid age value: %d", new_time);
@@ -3136,8 +3181,9 @@ sensor:
         - lambda: |-
             int new_time_warm = x; // Значение от number_sensor
             if (new_time_warm >= 0 && new_time_warm <= 10) {
-              id(set_warm_up_time).publish_state(new_time_warm); // Исправлено
-              ESP_LOGD("Settings", "Age updated to: %d", new_time_warm);
+              //id(set_warm_up_time).publish_state(new_time_warm);
+              id(set_warm_up_time).make_call().set_value(new_time_warm).perform();
+              ESP_LOGI("Settings", "Age updated to: %d", new_time_warm);
               //id(update_heart_rate_zones).execute(); // Обновляем зоны пульса
             } else {
               ESP_LOGW("Settings", "Invalid age value: %d", new_time_warm);
@@ -3154,8 +3200,9 @@ sensor:
         - lambda: |-
             int new_time_cool = x; // Значение от number_sensor
             if (new_time_cool >= 0 && new_time_cool <= 10) {
-              id(set_cool_down_time).publish_state(new_time_cool); // Исправлено
-              ESP_LOGD("Settings", "Age updated to: %d", new_time_cool);
+              //id(set_cool_down_time).publish_state(new_time_cool);
+              id(set_cool_down_time).make_call().set_value(new_time_cool).perform();
+              ESP_LOGI("Settings", "Age updated to: %d", new_time_cool);
               //id(update_heart_rate_zones).execute(); // Обновляем зоны пульса
             } else {
               ESP_LOGW("Settings", "Invalid age value: %d", new_time_cool);
@@ -3204,6 +3251,28 @@ sensor:
             lambda: 'return id(ble_client_connected);'
           then:
             - script.execute: send_treadmill_data
+
+  # Виртуальный сенсор для вывода на дисплей
+  # - platform: template
+  #   name: "Treadmill Speed Display"
+  #   id: treadmill_speed_display
+  #   unit_of_measurement: "km/h"
+  #   accuracy_decimals: 1
+  #   update_interval: 1s
+  #   lambda: |-
+  #     if (id(speed_source_switch).state) {
+  #       // Переключатель включен → берём скорость с UART
+  #       return id(treadmill_speed_sensor_uart).state;
+  #     } else {
+  #       // Переключатель выключен → берём скорость с моторного датчика
+  #       return id(treadmill_speed_kph).state;
+  #     }
+  #   on_value:
+  #     - lambda: |-
+  #         char speed_str[10];
+  #         sprintf(speed_str, "%.1f", id(treadmill_speed_display).state);
+  #         id(display_nextion).set_component_text("t1", speed_str);
+
 
   - platform: template
     name: "Treadmill Incline"
@@ -3352,6 +3421,7 @@ sensor:
         if (id(speed).state) {
           id(display_nextion).send_command_printf("p0.pic=%d", 7); // Серый
           id(display_nextion).send_command_printf("t0.txt=\"-\"");
+          ESP_LOGI("Nextion", "Sending command for p0.pic and t0.txt");
         }
         return 0.0;
       }
@@ -3418,6 +3488,7 @@ sensor:
           char heart_str[10];
           sprintf(heart_str, "%d", heart_rate);
           id(display_nextion).send_command_printf("t0.txt=\"%s\"", heart_str);
+          ESP_LOGI("Nextion", "Sending command for t0.txt");
           last_heart_rate = heart_rate;
         }
 
@@ -3432,6 +3503,7 @@ sensor:
 
           id(display_nextion).send_command_printf("p0.pic=%d", picture_id);
           id(display_nextion).send_command_printf("t0.bco=%d", t0_bco);
+          ESP_LOGI("Nextion", "Sending command for p0.pic and t0.bco");
           last_picture_id = picture_id;
         }
       }
@@ -3459,6 +3531,7 @@ sensor:
     unit_of_measurement: "%"
     icon: "mdi:battery"
 
+
 # BLE
 esp32_ble_tracker:
   scan_parameters:
@@ -3475,11 +3548,15 @@ ble_client:
           state: "Подключен"
       - delay: 20ms 
       - lambda: |-
-          ESP_LOGD("ble_client", "Connected to fit_smart");
+          id(name_bt_sensor).update();   // запросить модель
+
+          ESP_LOGI("ble_client", "Connected to fit_smart");
           // Принудительное чтение батареи при подключении
           id(battery_level_sensor).update();
           // Устанавливаем значение hr в 1 (подключено)
           id(display_nextion).send_command_printf("hr=1");
+          ESP_LOGI("Nextion", "Sending command for hr=1");
+          id(display_nextion).set_component_text("bluetooth.status_bt", "connected");
       - if:
           condition:
             lambda: 'return id(mainPage).state;'
@@ -3487,12 +3564,15 @@ ble_client:
             - lambda: |-
                 id(display_nextion).send_command_printf("p_error.pic=15");
                 id(display_nextion).send_command_printf("vis p_error,1");
+                ESP_LOGI("Nextion", "Sending command for p_error.pic and vis p_error 1");
             - delay: 3000ms  # Задержка 3 секунды
             - lambda: |-
                 id(display_nextion).send_command_printf("vis p_error,0");
                 id(display_nextion).send_command_printf("mainPage.bhr_zone.aph=127"); 
                 id(display_nextion).send_command_printf("mainPage.bhiit.aph=127"); 
-                id(display_nextion).send_command_printf("mainPage.bfit_test.aph=127"); 
+                ESP_LOGI("Nextion", "Sending command for vis p_error 0 and mainPage.bhr_zone.aph=127 and mainPage.bhiit.aph=127");
+
+                //id(display_nextion).send_command_printf("mainPage.bfit_test.aph=127"); 
     on_disconnect:
       - sensor.template.publish:
           id: heart_rate_sensor
@@ -3501,15 +3581,22 @@ ble_client:
           if (id(speed).state) {
             id(display_nextion).set_component_text("b0", "-"); // Устанавливаем строку на дисплей
             id(display_nextion).send_command_printf("b0.pic=7");
+            ESP_LOGI("Nextion", "Sending command for b0.pic=7");
           }
 
           // Устанавливаем значение hr в 0 отключено
           id(display_nextion).send_command_printf("hr=0");
+          ESP_LOGI("Nextion", "Sending command for hr=0");
           if (id(mainPage).state) {
             id(display_nextion).send_command_printf("mainPage.bhr_zone.aph=80"); 
             id(display_nextion).send_command_printf("mainPage.bhiit.aph=80"); 
-            id(display_nextion).send_command_printf("mainPage.bfit_test.aph=80"); 
+            ESP_LOGI("Nextion", "Sending command for mainPage.bhr_zone.aph=80 and mainPage.bhiit.aph=80");
+            //id(display_nextion).send_command_printf("mainPage.bfit_test.aph=80"); 
           }
+          id(display_nextion).set_component_text("bluetooth.battery", "-");
+          id(display_nextion).set_component_text("bluetooth.bpm", "");
+          id(display_nextion).set_component_text("bluetooth.name_bt", "-");
+          id(display_nextion).set_component_text("bluetooth.status_bt", "disconnected");
       - sensor.template.publish:
           id: battery_level_sensor
           state: 0 # !lambda 'return NAN;'
@@ -3733,7 +3820,7 @@ esp32_ble_server:
                   } else if (op_code == 0x03 && x.size() >= 3) {  // Set Target Incline
                     static uint32_t last_incline_time = 0;
                     if (millis() - last_incline_time < 500) {
-                      ESP_LOGD("FTMS", "Игнорируем частую команду наклона");
+                      ESP_LOGI("FTMS", "Игнорируем частую команду наклона");
                       return;
                     }
                     last_incline_time = millis();
@@ -3915,6 +4002,8 @@ binary_sensor:
       then:
        # - component.update: display_nextion
         - lambda: |-
+            id(display_nextion).set_component_value("motor.ntemp", id(temp).state);
+            ESP_LOGI("Nextion", "Setting value for motor.ntemp");
             ESP_LOGI("Nextion", "motor_page (page 17) opened");
 
   - platform: nextion
@@ -3957,6 +4046,15 @@ binary_sensor:
             ESP_LOGI("Nextion", "Speed tab (page 1) opened");
 
   - platform: nextion
+    page_id: 19
+    component_id: 0
+    id: bluetooth_page
+    on_press:
+      then:
+        - lambda: |-
+            ESP_LOGI("Nextion", "bluetooth_page tab (page 1) opened");
+
+  - platform: nextion
     page_id: 2
     component_id: 0
     id: pulsezone
@@ -3988,11 +4086,11 @@ binary_sensor:
         - lambda: |-
             // Отправляем возраст
             id(display_nextion).send_command_printf("n_age.val=%d", (int)id(age_number).state);
-            ESP_LOGD("Nextion", "Loaded age %d to n_age", (int)id(age_number).state);
+            ESP_LOGI("Nextion", "Loaded age %d to n_age", (int)id(age_number).state);
 
             // Отправляем вес в кг
             id(display_nextion).send_command_printf("n_weight.val=%d", (int)id(weight_kg).state);
-            ESP_LOGD("Nextion", "Loaded age %d to n_weight", (int)id(weight_kg).state);
+            ESP_LOGI("Nextion", "Loaded age %d to n_weight", (int)id(weight_kg).state);
 
             // Отправляем пол (bt0)
             const char* gender = id(gender_select)->state.c_str();
@@ -4013,6 +4111,7 @@ binary_sensor:
             id(display_nextion).send_command_printf("n_min.val=%d", (int)id(set_run_time).state);
             // Отправляем время разминки
             id(display_nextion).send_command_printf("n_warm.val=%d", (int)id(set_warm_up_time).state);
+            ESP_LOGI("Nextion", "Sending command for n_min.val and n_warm.val=%d");
             // Отправляем время заминка
             id(display_nextion).send_command_printf("n_cool.val=%d", (int)id(set_cool_down_time).state);
             ESP_LOGI("Nextion", "Time tab (page 5) opened");
@@ -4116,6 +4215,7 @@ binary_sensor:
            id(display_nextion).set_component_text("b_cal", "Running...");
            id(display_nextion).set_component_text("caldistspeed.t_info_calib", "3");
            id(display_nextion).send_command_printf("p_zone.pic=76"); // картинка зоны 
+           ESP_LOGI("Nextion", "Sending command for p_zone.pic=76");
            id(display_nextion).set_component_text("caldistspeed.t_speed_up", "");
            id(display_nextion).set_component_text("caldistspeed.t_speed_down", "");
            id(display_nextion).set_component_text("caldistspeed.t_lenght", "");
@@ -4280,9 +4380,38 @@ binary_sensor:
             id(zone_select).publish_state("5");
         - lambda: id(bzone5).publish_state(false);
 
+  - platform: nextion
+    page_id: 12
+    component_id: 3
+    id: map_m0
+    on_press:
+      then:
+        - lambda: |-
+            id(program_select).publish_state("Pulse Zone");  // Выбираем программу
+            ESP_LOGI("Nextion", "INFO tab (map_m0 press) press"); 
+            id(map_m0).publish_state(false);
+
+  - platform: nextion
+    page_id: 12
+    component_id: 1
+    id: map_m1
+    on_press:
+      then:
+        - lambda: |-
+            id(program_select).publish_state("Pulse Zone");  // Выбираем программу
+            ESP_LOGI("Nextion", "INFO tab (map_m1 press) press"); 
+            id(map_m1).publish_state(false);
 
 # Текстовые сенсоры
 text_sensor:
+  - platform: ble_client
+    name: "BT Model"
+    id: name_bt_sensor
+    ble_client_id: fit_smart
+    service_uuid: "180A"
+    characteristic_uuid: "2A29"
+    update_interval: never
+
   - platform: version
     id: ESPHomeVersion
     name: "ESPHome version"
@@ -4354,9 +4483,9 @@ select:
 
           if (program == "None") {
             id(zone_select).publish_state("1");
-            id(set_run_time).publish_state(00.0); //время тренировки 
-            id(set_warm_up_time).publish_state(00.0); //время разминки
-            id(set_cool_down_time).publish_state(00.0); //время заминки
+            //id(set_run_time).publish_state(00.0); //время тренировки 
+            //id(set_warm_up_time).publish_state(00.0); //время разминки
+            //id(set_cool_down_time).publish_state(00.0); //время заминки
             //id(stop_program).execute();
           } else if (program == "Fat Burn") {
             id(zone_select).publish_state("2");
@@ -4381,9 +4510,9 @@ select:
             id(interval_time) = 0;
             id(manual_stop) = false;
           } else if (program == "Pulse Zone") {
-            id(set_run_time).publish_state(30.0);
-            id(set_warm_up_time).publish_state(03.0); //время разминки
-            id(set_cool_down_time).publish_state(03.0); //время заминки
+            //id(set_run_time).publish_state(30.0);
+            //id(set_warm_up_time).publish_state(03.0); //время разминки
+            //id(set_cool_down_time).publish_state(03.0); //время заминки
             id(manual_stop) = false;
           }
 
@@ -4404,6 +4533,7 @@ select:
           int button_val = (strcmp(gender, "Male") == 0) ? 0 : 1;  // 0 для Male, 1 для Female
           // Обновляем bt0 (Dual State Button)
           id(display_nextion).send_command_printf("age.bt0.val=%d", button_val);
+          ESP_LOGI("Nextion", "Sending command for age.bt0.val");
       - script.execute: update_heart_rate_zones
 
   - platform: template
@@ -4427,13 +4557,18 @@ select:
     restore_value: no
     options:
       - "None"
-      - "Russia, Ufa 3.4km"
-      - "Russia, Ufa Sipailovo 4.4km"
-      - "Russia, Ufa Kashkadan 1.7km"
-      - "Zwift Epic Run 6.2km"
-      - "Zwift 5K loop 5.0km"
-      - "Zwift Mountain Mash 5.9km"
-      - "Zwift Chili Pepper 8.0km"
+      - "Russia, Ufa 3.4km"                           #1
+      - "Russia, Ufa Sipailovo 4.4km"                 #2
+      - "Russia, Ufa Kashkadan 1.7km"                 #3
+      - "Zwift Epic Run 6.2km"                        #4
+      - "Zwift 5K loop 5.0km"                         #5
+      - "Zwift Mountain Mash 5.9km"                   #6
+      - "Zwift Chili Pepper 8.0km"                    #7
+      - "Zwift Hilly Route Reverse Run 9.2km"         #8
+      - "Zwift Ocean Blvd 11.2km"                     #9
+      - "Zwift Beach Island Loop 12.8km"              #10
+      - "Zwift Jon’s Route 12.6km"                    #11
+
     initial_option: "None"
     optimistic: true
     # on_value:
@@ -4457,7 +4592,7 @@ select:
   #     - lambda: |-
   #         id(uart_bus).flush();
   #         uint8_t new_data_bits = (uint8_t)stoi(x);
-  #         ESP_LOGD("UART", "Changing data bits from %i to %i", id(uart_bus).get_data_bits(), new_data_bits);
+  #         ESP_LOGI("UART", "Changing data bits from %i to %i", id(uart_bus).get_data_bits(), new_data_bits);
   #         if (id(uart_bus).get_data_bits() != new_data_bits) {
   #           id(uart_bus).set_data_bits(new_data_bits);
   #           id(uart_bus).load_settings();
@@ -4486,7 +4621,7 @@ select:
   #         } else {
   #           new_parity = uart::UARTParityOptions::UART_CONFIG_PARITY_ODD;
   #         }
-  #         ESP_LOGD("UART", "Changing parity to %s", x.c_str());
+  #         ESP_LOGI("UART", "Changing parity to %s", x.c_str());
   #         id(uart_bus).set_parity(new_parity);
   #         id(uart_bus).load_settings();
 
@@ -4505,7 +4640,7 @@ select:
   #     - lambda: |-
   #         id(uart_bus).flush();
   #         uint8_t new_stop_bits = (uint8_t)stoi(x);
-  #         ESP_LOGD("UART", "Changing stop bits from %i to %i", id(uart_bus).get_stop_bits(), new_stop_bits);
+  #         ESP_LOGI("UART", "Changing stop bits from %i to %i", id(uart_bus).get_stop_bits(), new_stop_bits);
   #         if (id(uart_bus).get_stop_bits() != new_stop_bits) {
   #           id(uart_bus).set_stop_bits(new_stop_bits);
   #           id(uart_bus).load_settings();
@@ -4525,6 +4660,7 @@ number:
       - lambda: |-
           //if (id(age).state) {
           id(display_nextion).send_command_printf("age.n_age.val=%d", (int)id(age_number).state);
+          ESP_LOGI("Nextion", "Sending command for age.n_age.val");
           //}
       - script.execute: update_heart_rate_zones
 
@@ -4542,7 +4678,8 @@ number:
       - lambda: |-
           // Отправляем вес на дисплей (предполагается, что компонент называется n_weight)
           id(display_nextion).send_command_printf("age.n_weight.val=%d", (int)id(weight_kg).state);
-          //ESP_LOGD("Settings", "Weight updated to: %d kg", (int)id(weight_kg).state);
+          ESP_LOGI("Nextion", "Sending command for age.n_weight.val");
+          //ESP_LOGI("Settings", "Weight updated to: %d kg", (int)id(weight_kg).state);
 
 
   - platform: template
@@ -4611,12 +4748,13 @@ number:
     unit_of_measurement: "min"
     icon: "mdi:timer-play-outline"
     optimistic: true
-    restore_value: no
+    restore_value: yes
     initial_value: 0  # По умолчанию 5 минут
     on_value:
       - lambda: |-
           //if (id(age).state) {
           id(display_nextion).send_command_printf("Time.n_warm.val=%d", (int)id(set_warm_up_time).state);
+          ESP_LOGI("Nextion", "Sending command for Time.n_warm.val");
           //}
 
   - platform: template
@@ -4628,7 +4766,7 @@ number:
     unit_of_measurement: "min"
     icon: "mdi:timer"
     optimistic: true
-    restore_value: no
+    restore_value: yes
     initial_value: 0
     on_value:
       - lambda: |- 
@@ -4648,6 +4786,7 @@ number:
 
           //if (id(age).state) {
           id(display_nextion).send_command_printf("Time.n_min.val=%d", (int)id(set_run_time).state);
+          ESP_LOGI("Nextion", "Sending command for Time.n_min.val");
           //}
 
   - platform: template
@@ -4659,12 +4798,13 @@ number:
     unit_of_measurement: "min"
     icon: "mdi:timer-stop-outline"
     optimistic: true
-    restore_value: no
+    restore_value: yes
     initial_value: 0  # По умолчанию 5 минут
     on_value:
       - lambda: |-
           //if (id(age).state) {
           id(display_nextion).send_command_printf("Time.n_cool.val=%d", (int)id(set_cool_down_time).state);
+          ESP_LOGI("Nextion", "Sending command for Time.n_cool.val");
           //}
 
 #Компонент number для эмуляции пульса для отладки
@@ -4726,6 +4866,7 @@ number:
                     char heart_str[10];
                     sprintf(heart_str, "%.0f", heart_rate);
                     id(display_nextion).send_command_printf("t0.txt=\"%s\"", heart_str);
+                    ESP_LOGI("Nextion", "Sending command for t0.txt");
 
                     uint16_t picture_id = 7; // Серый по умолчанию
                     uint16_t t0_bco = 21162; // Серый по умолчанию
@@ -4749,6 +4890,7 @@ number:
                     }
                     id(display_nextion).send_command_printf("p0.pic=%d", picture_id);
                     id(display_nextion).send_command_printf("t0.bco=%d", t0_bco);
+                    ESP_LOGI("Nextion", "Sending command for p0.pic and t0.bco");
                   }
 
   - platform: template
@@ -4766,7 +4908,7 @@ number:
       - lambda: |-
           id(uart_bus).flush();  // Очищаем буфер перед сменой скорости
           uint32_t new_baud_rate = (uint32_t)x;  // Преобразуем значение ползунка в uint32_t
-          ESP_LOGD("UART", "Changing baud rate from %i to %i", id(uart_bus).get_baud_rate(), new_baud_rate);
+          ESP_LOGI("UART", "Changing baud rate from %i to %i", id(uart_bus).get_baud_rate(), new_baud_rate);
           if (id(uart_bus).get_baud_rate() != new_baud_rate) {
             id(uart_bus).set_baud_rate(new_baud_rate);
             id(uart_bus).load_settings();
@@ -4791,6 +4933,7 @@ number:
             id(display_nextion).send_command_printf("speed.h_position.maxval=%d", (int)id(treadmill_slider_max).state);
             id(display_nextion).send_command_printf("speed.h_position1.maxval=%d", (int)id(treadmill_slider_max).state);
             id(display_nextion).send_command_printf("caldistspeed.h_position.maxval=%d", (int)id(treadmill_slider_max).state);
+            ESP_LOGI("Nextion", "Sending command for speed.h_position.maxval and speed.h_position1.maxval and caldistspeed.h_position.maxval");
 
 
   - platform: template
@@ -4811,6 +4954,7 @@ number:
             id(display_nextion).send_command_printf("speed.h_position.minval=%d", (int)id(treadmill_slider_min).state);
             id(display_nextion).send_command_printf("speed.h_position1.minval=%d", (int)id(treadmill_slider_min).state);
             id(display_nextion).send_command_printf("caldistspeed.h_position.minval=%d", (int)id(treadmill_slider_min).state);
+            ESP_LOGI("Nextion", "Sending command for speed.h_position.minval and speed.h_position1.minval and caldistspeed.h_position.minval");
 
 
   - platform: template
@@ -4888,6 +5032,29 @@ number:
 
   # Switch для обработки bt0 (Dual State Button)
 switch:
+#кнопка для включения безопасного режима по датчику растояния TOF
+  - platform: template 
+    name: "Safe Mode"
+    id: safe_mode_switch
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+      - logger.log: "Safe mode enabled"
+    on_turn_off:
+      - logger.log: "Safe mode disabled"
+
+  # Переключатель источника скорости
+  # - platform: template
+  #   name: "Speed Source"
+  #   id: speed_source_switch
+  #   optimistic: true
+  #   restore_mode: RESTORE_DEFAULT_ON
+  #   on_turn_on:
+  #     - logger.log: "Display source = UART sensor"
+  #   on_turn_off:
+  #     - logger.log: "Display source = Motor sensor"
+
+
   - platform: nextion
     id: gender_switch
     name: "Gender Switch"
@@ -4897,41 +5064,42 @@ switch:
       - lambda: |-
           if (id(gender_select)->state != "Female") {
             id(gender_select).publish_state("Female");
-            ESP_LOGD("Settings", "Gender set to Female from bt0");
+            ESP_LOGI("Settings", "Gender set to Female from bt0");
             id(update_heart_rate_zones).execute();
           }
     on_turn_off:  # bt0.val = 0 (Male)
       - lambda: |-
           if (id(gender_select)->state != "Male") {
             id(gender_select).publish_state("Male");
-            ESP_LOGD("Settings", "Gender set to Male from bt0");
+            ESP_LOGI("Settings", "Gender set to Male from bt0");
             id(update_heart_rate_zones).execute();
           }
 
 
-  - platform: template
-    name: "Emulate Heart Rate"
-    id: emulate_heart_rate_switch
-    entity_category: diagnostic
-    optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
-    icon: "mdi:heart-pulse"
-    turn_on_action:
-      - lambda: |-
-          id(emulate_ble_connected) = true;
-          ESP_LOGI("SWITCH", "Heart rate emulation enabled");
-    turn_off_action:
-      - lambda: |-
-          id(emulate_ble_connected) = false;
-          ESP_LOGI("SWITCH", "Heart rate emulation disabled");
-          // Сбрасываем heart_rate_sensor при выключении
-          id(heart_rate_sensor).publish_state(NAN);
-          // Очищаем дисплей Nextion
-          if (id(speed).state) {
-            id(display_nextion).send_command_printf("t0.txt=\"--\"");
-            id(display_nextion).send_command_printf("p0.pic=7"); // Серый по умолчанию
-            id(display_nextion).send_command_printf("t0.bco=21162"); // Серый по умолчанию
-          }
+  # - platform: template
+  #   name: "Emulate Heart Rate"
+  #   id: emulate_heart_rate_switch
+  #   entity_category: diagnostic
+  #   optimistic: true
+  #   restore_mode: RESTORE_DEFAULT_OFF
+  #   icon: "mdi:heart-pulse"
+  #   turn_on_action:
+  #     - lambda: |-
+  #         id(emulate_ble_connected) = true;
+  #         ESP_LOGI("SWITCH", "Heart rate emulation enabled");
+  #   turn_off_action:
+  #     - lambda: |-
+  #         id(emulate_ble_connected) = false;
+  #         ESP_LOGI("SWITCH", "Heart rate emulation disabled");
+  #         // Сбрасываем heart_rate_sensor при выключении
+  #         id(heart_rate_sensor).publish_state(NAN);
+  #         // Очищаем дисплей Nextion
+  #         if (id(speed).state) {
+  #           id(display_nextion).send_command_printf("t0.txt=\"--\"");
+  #           id(display_nextion).send_command_printf("p0.pic=7"); // Серый по умолчанию
+  #           id(display_nextion).send_command_printf("t0.bco=21162"); // Серый по умолчанию
+  #           ESP_LOGI("Nextion", "Sending command for t0.txt and p0.pic=7 and t0.bco=21162");
+  #         }
 
   - platform: nextion
     name: "Disp. auto on-off"
@@ -4941,9 +5109,11 @@ switch:
     on_turn_on:
       - lambda: |-
           id(display_nextion).send_command_printf("display.sw_display_off.val=1"); 
+          ESP_LOGI("Nextion", "Sending command for display.sw_display_off.val=1");
     on_turn_off:
       - lambda: |-
           id(display_nextion).send_command_printf("display.sw_display_off.val=0"); 
+          ESP_LOGI("Nextion", "Sending command for display.sw_display_off.val=0");
 
 
   - platform: template
@@ -4997,7 +5167,7 @@ display:
       then:
         # - wait_until:  // команда (wait_until) ждать пока не загрузится
         #     api.connected
-        #- delay: 10s  # Подождать чтобы загрузилась погода
+        #- delay: 10s  # Подождать чтобы загрузилась 
         - lambda: |-
             // загрузка последнего состояния кнопки 
             if (id(sw_display_off)) {
@@ -5006,18 +5176,31 @@ display:
               id(sw_display_off).turn_off();
             }
 
-            id(display_nextion).set_component_value("display.hbright", id(brightness_level));
-            id(display_nextion).set_component_value("dim", id(brightness_level));
+            // загрузка последнего состояния яркости
+            //id(display_nextion).set_component_value("display.hbright", id(brightness_level));
+            //id(display_nextion).send_command_printf("dim=%d", id(brightness_level));
+        - delay: 500ms
+        - lambda: |-
+            int brightness = id(brightness_level);
+            if (brightness < 20) {
+              brightness = 20;
+              id(brightness_level) = 20;
+            }
+            ESP_LOGI("Nextion", "Setting value for hbright");
+            id(display_nextion).set_component_value("display.hbright", brightness);
+            ESP_LOGI("Nextion", "Setting dim value");
+            id(display_nextion).send_command_printf("dim=%d", brightness);
 
             id(display_nextion).send_command_printf("speed.h_position.maxval=%d", (int)id(treadmill_slider_max).state);
             id(display_nextion).send_command_printf("speed.h_position1.maxval=%d", (int)id(treadmill_slider_max).state);
             id(display_nextion).send_command_printf("caldistspeed.h_position.maxval=%d", (int)id(treadmill_slider_max).state);
-
+        - delay: 500ms
+        - lambda: |-
             id(display_nextion).send_command_printf("speed.h_position.minval=%d", (int)id(treadmill_slider_min).state);
-             id(display_nextion).send_command_printf("speed.h_position1.minval=%d", (int)id(treadmill_slider_min).state);
+            id(display_nextion).send_command_printf("speed.h_position1.minval=%d", (int)id(treadmill_slider_min).state);
             id(display_nextion).send_command_printf("caldistspeed.h_position.minval=%d", (int)id(treadmill_slider_min).state);
-
-
+        - delay: 500ms
+        - lambda: |-
             // Обновление текстовых полей
             id(display_nextion).set_component_text_printf("caldistspeed.t_speed_up", "%d", (int)id(accel_cm).state);
             id(display_nextion).set_component_text_printf("caldistspeed.t_speed_down", "%d", (int)id(decel_cm).state);
@@ -5026,4 +5209,19 @@ display:
     lambda: |-
       if (id(speed).state) {
         id(display_nextion).set_component_text("speed.t5", id(program_status).state.c_str());
+      }
+      if (id(bluetooth_page).state) {
+        if (id(fit_smart).connected()) {
+          char buf[12];
+          sprintf(buf, "%.0f%%", id(battery_level_sensor).state);
+          id(display_nextion).set_component_text("bluetooth.battery", buf);
+          char heart_str[10];
+          sprintf(heart_str, "%.0f", id(heart_rate_sensor).state);
+          id(display_nextion).set_component_text("bluetooth.bpm", heart_str);
+          id(display_nextion).set_component_text("bluetooth.name_bt", id(name_bt_sensor).state.c_str());
+        } else {
+          id(display_nextion).set_component_text("bluetooth.bpm", "");
+          id(display_nextion).set_component_text("bluetooth.name_bt", "-");
+          id(display_nextion).set_component_text("bluetooth.battery", "-");
+        }
       }
