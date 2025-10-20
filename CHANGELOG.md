@@ -1,3 +1,6 @@
+- October 20, 2025:
+  - Added automatic treadmill shutdown on motor overheating (>85°C), enabled via Nextion or ESPHome switch: triggers an alert page with overheat notification, stops the treadmill, and updates the status to "Overheat Emergency Stop" for improved safety.
+  - Redesigned Nextion display interface and tabs for improved navigation and user convenience.
 - August 29, 2025:  
   - Integrated a distance sensor (TOF400C‑VL53L1X) to expand treadmill control capabilities:  
     - **Free Run speed control** – adjust treadmill speed dynamically using proximity detection, without pressing buttons.  

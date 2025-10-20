@@ -2270,8 +2270,7 @@ script:
           }
 
 
-# Модифицированный скрипт калибровки с использованием number.set
-
+# Скрипт калибровки Free Run (определение длины беговой дорожки и зон ускорения и замедления)
   - id: start_calibration
     mode: restart
     then:
@@ -3027,14 +3026,17 @@ sensor:
             } else {
               ESP_LOGW("Temp", "NaN temperature, skipping update");
             }
-    # on_value:
-    #   then:
-    #     - lambda: |-
-    #         int tempmotor = (int)id(temp).state;
-    #         //id(display_nextion).set_component_value("speed.ntemp", tempmotor);
-    #         //id(display_nextion).set_component_value("motor.ntemp", tempmotor);
-    #         ESP_LOGI("Nextion", "Sending command for ntemp");
-    #         //}
+
+            if (id(speed).state) {
+              // Остановка беговой дорожки при перегреве мотора больше 85 гр.
+              if (id(sw_tempmode).state && !isnan(temp_value) && temp_value > 85.0) {
+                ESP_LOGW("Overheat", "Температура мотора >85°C! Остановка дорожки.");
+                id(display_nextion).send_command_printf("page 24");
+                id(program_status).publish_state("Overheat Emergency Stop");
+                id(stop_program).execute();
+              }
+            }
+
 
   - platform: template
     name: "Calories Burned"
@@ -5033,15 +5035,15 @@ number:
   # Switch для обработки bt0 (Dual State Button)
 switch:
 #кнопка для включения безопасного режима по датчику растояния TOF
-  - platform: template 
-    name: "Safe Mode"
-    id: safe_mode_switch
-    optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
-    on_turn_on:
-      - logger.log: "Safe mode enabled"
-    on_turn_off:
-      - logger.log: "Safe mode disabled"
+  # - platform: template 
+  #   name: "Safe Mode"
+  #   id: safe_mode_switch
+  #   optimistic: true
+  #   restore_mode: RESTORE_DEFAULT_ON
+  #   on_turn_on:
+  #     - logger.log: "Safe mode enabled"
+  #   on_turn_off:
+  #     - logger.log: "Safe mode disabled"
 
   # Переключатель источника скорости
   # - platform: template
@@ -5101,6 +5103,7 @@ switch:
   #           ESP_LOGI("Nextion", "Sending command for t0.txt and p0.pic=7 and t0.bco=21162");
   #         }
 
+#кнопка nextion для вкл/выкл дисплея по датчику растояния через 1 минуту
   - platform: nextion
     name: "Disp. auto on-off"
     id: sw_display_off
@@ -5115,7 +5118,37 @@ switch:
           id(display_nextion).send_command_printf("display.sw_display_off.val=0"); 
           ESP_LOGI("Nextion", "Sending command for display.sw_display_off.val=0");
 
+#кнопка nextion для вкл/выкл безопасного режима по датчику растояния TOF
+  - platform: nextion
+    name: "Safety stop"
+    id: safe_mode_switch
+    component_name: system.sw_savemode
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+      - lambda: |-
+          id(display_nextion).send_command_printf("system.sw_savemode.val=1"); 
+          ESP_LOGI("Nextion", "Sending command for system.sw_savemode.val=1");
+    on_turn_off:
+      - lambda: |-
+          id(display_nextion).send_command_printf("system.sw_savemode.val=0"); 
+          ESP_LOGI("Nextion", "Sending command for system.sw_savemode.val=0");
 
+#кнопка nextion для вкл/выкл режима авто отстановки беговой дорожки при перегрева
+  - platform: nextion
+    name: "Overheat stop"
+    id: sw_tempmode
+    component_name: system.sw_tempmode
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+      - lambda: |-
+          id(display_nextion).send_command_printf("system.sw_tempmode.val=1"); 
+          ESP_LOGI("Nextion", "Sending command for system.sw_tempmode.val=1");
+    on_turn_off:
+      - lambda: |-
+          id(display_nextion).send_command_printf("system.sw_tempmode.val=0"); 
+          ESP_LOGI("Nextion", "Sending command for system.sw_tempmode.val=0");
+
+#кнопка режима free run 
   - platform: template
     name: "Free Running Mode"
     id: free_running_mode_switch
@@ -5174,6 +5207,12 @@ display:
               id(sw_display_off).turn_on();
             } else {
               id(sw_display_off).turn_off();
+            }
+
+            if (id(safe_mode_switch)) { 
+              id(safe_mode_switch).turn_on();
+            } else {
+              id(safe_mode_switch).turn_off();
             }
 
             // загрузка последнего состояния яркости
