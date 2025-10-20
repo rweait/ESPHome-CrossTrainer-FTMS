@@ -1,6 +1,7 @@
 - October 20, 2025:
   - Added automatic treadmill shutdown on motor overheating (>85°C), enabled via Nextion or ESPHome switch: triggers an alert page with overheat notification, stops the treadmill, and updates the status to "Overheat Emergency Stop" for improved safety.
   - Redesigned Nextion display interface and tabs for improved navigation and user convenience.
+  - Added new Zwift running routes with auto-incline profiles: "Zwift 5K loop (5.0km)", "Zwift Mountain Mash (5.9km)", "Zwift Chili Pepper (8.0km)", "Zwift Hilly Route Reverse Run (9.2km)", "Zwift Ocean Blvd (11.2km)", "Zwift Beach Island Loop (12.8km)", and "Zwift Jon’s Route (12.6km)", which can be run autonomously without the Zwift app for enhanced virtual training options.
 - August 29, 2025:  
   - Integrated a distance sensor (TOF400C‑VL53L1X) to expand treadmill control capabilities:  
     - **Free Run speed control** – adjust treadmill speed dynamically using proximity detection, without pressing buttons.  
