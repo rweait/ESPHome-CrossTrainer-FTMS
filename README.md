@@ -98,38 +98,7 @@ To integrate with the treadmill, you need to connect to UART and decode data (e.
   ## Connection
   <details>
   <summary>▶️ Click for connection details</summary>
-
-  ```
-  [PSA(xx) Board]
-  Pin1  12V  ──► LM2596S IN+ ──► 5V ──► Nextion Vcc / DS18B20 Vcc / FC33 Vcc / HV‑LS
-  Pin2  NC   ──► (not used)
-  Pin3  GND  ──┴───────────────────────────────────────────────────────────────┐
-  Pin4  TX   ──► HV2‑LS ──► GPIO18 (RX) ESP32‑S3                               │
-  Pin5  RX   ◄── HV1‑LS ◄── GPIO17 (TX) ESP32‑S3                               │
-  Pin6  SW   ──► +12V (Pin1)                                                   │
-                                                                               │
-  [ESP32‑S3] ──────────────────────────────────────────────────────────────────┘
-  GPIO1   TX   ──► Nextion RX
-  GPIO2   RX   ◄── Nextion TX
-  GPIO11  SDA  ◄─► ToF400C SDA
-  GPIO12  SCL  ──► ToF400C SCL
-  GPIO21  1‑Wire ◄─► DS18B20 (5V supply, 4.7 kΩ pull‑up to 5V)
-  GPIO16  In   ◄── FC33 Signal (5V, check compatibility)
-  GND           ─────────► common ground
-
-  [LM2596S]
-  IN+   12V от PSA Pin1
-  IN−   GND от PSA Pin3
-  OUT+  5V → Nextion / DS18B20 / FC33 / HV‑LS
-  OUT−  common GND
-
-  [Level Shifter 2‑channel]
-  LV = 3.3V от ESP32
-  HV = 5V от LM2596S
-  CH1: GPIO17 → PSA RX
-  CH2: GPIO18 ← PSA TX
-  ```
-
+  <img src="docs/images/connection.png" alt="connection"/>
   </details>
  
 ## Features
