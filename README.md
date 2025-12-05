@@ -1,15 +1,10 @@
-# Full Treadmill Computer Implementation on ESPHome
+# Early Experimental Cross-Trainer (Elliptical Trainer) Computer Implementation on ESPHome
 
-Transform your old treadmill into a modern, smart training companion! This project is a complete replacement for the treadmill's onboard computer, built on ESP32-S3 and ESPHome firmware. It integrates the [Fitness Machine Service (FTMS)](/docs/specs/FTMS_v1.0.pdf) protocol for direct communication with fitness apps via Bluetooth, eliminating the need for bridges or third-party apps. It also includes smart heart rate-based programs and built-in training modes. Designed for treadmills with PSA(xx) boards, it adapts to any UART-enabled model. Minimal cost, maximum potential!
+Transform your old Cross Trainer into a modern, smart training companion! This project is a complete replacement for the treadmill's onboard computer, built on ESP32-S3 and ESPHome firmware. It integrates the [Fitness Machine Service (FTMS)](/docs/specs/FTMS_v1.0.pdf) protocol for direct communication with fitness apps via Bluetooth, eliminating the need for bridges or third-party apps. 
 
-### Supported FTMS Apps
-- :white_check_mark: Zwift
-- :white_check_mark: Kinomap (Android/iOS)
-- :white_check_mark: FitShow
-- :white_check_mark: Kinni
-- :white_check_mark: qdomyos
+Super early.  Likely nothing works. if it works, it must be from the original material and I haven't broken it yet.
 
-**[Русская версия / Russian version](README.ru.md)**
+Trust nothing. 
 
 ## Table of Contents
 - [About the Project](#About-the-Project)
@@ -192,9 +187,8 @@ ble_client:
 For a detailed history of changes, see [CHANGELOG.md](CHANGELOG.md).
 
 ## Authors
-Created by [@samsonovss](https://t.me/samsonovss) & xAI Assistant
-
-Join the project community on Telegram: [Treadmill Smart](https://t.me/TreadmillSmart)
+Original Created by [@samsonovss](https://t.me/samsonovss) & xAI Assistant
+Everything broken by me. 
 
 ## Support the Project
 Your support helps keep this project alive and growing! If you'd like to contribute, you can make a donation using one of the following methods:
